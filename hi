@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeatVault Studio - Guaranteed Audio Engine</title>
+    <style>
+        :root {
+            --bg-color: #0b0d12;
+            --card-bg: rgba(20, 24, 33, 0.9);
+            --accent-pink: #ff0055;
+            --accent-cyan: #00f0ff;
+            --accent-gold: #ffb703;
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 0, 85, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.08) 0%, transparent 40%);
+        }
+
+        header {
+            background: rgba(11, 13, 18, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, var(--accent-pink), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            width: 100%;
+            flex: 1;
+        }
+
+        .studio-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+        }
+
+        .top-selectors {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .selector-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.4);
+            padding: 0.6rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .selector-group label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: var(--accent-cyan);
+        }
+
+        select {
+            background: #12151e;
+            color: white;
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .controls-bar {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            background: rgba(0,0,0,0.3);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            justify-content: space-between;
+        }
+
+        .controls-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .timer-display {
+            background: #000;
+            color: var(--accent-cyan);
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+            letter-spacing: 1px;
+            direction: ltr;
+        }
+
+        .bpm-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .bpm-value {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: var(--accent-gold);
+            min-width: 35px;
+            text-align: center;
+        }
+
+        input[type="range"] {
+            accent-color: var(--accent-cyan);
+            cursor: pointer;
+        }
+
+        button.action-btn {
+            background: linear-gradient(135deg, var(--accent-pink), #c0003c);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 800;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 15px rgba(255, 0, 85, 0.3);
+        }
+
+        button.action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        button.secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            box-shadow: none;
+        }
+
+        button.secondary:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+        }
+
+        .sequencer-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .track-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .track-label {
+            width: 120px;
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .steps-container {
+            display: flex;
+            gap: 8px;
+        }
+
+        .step-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .step-btn.active {
+            background: var(--accent-pink);
+            border-color: var(--accent-pink);
+            box-shadow: 0 0 12px rgba(255, 0, 85, 0.5);
+        }
+
+        .step-btn.current {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .modal-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 2.5rem;
+            border-radius: 16px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            margin: 1.5rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--accent-pink);
+            transition: width 1s linear;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            font-size: 0.9rem;
+            background: rgba(11, 13, 18, 0.9);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">BEATVAULT STUDIO</div>
+        <div style="color: var(--text-muted); font-weight:600;">מנוע שמע פנימי מובטח (Native Audio Engine)</div>
+    </header>
+
+    <div class="container">
+        <div class="studio-card">
+
+            <div class="top-selectors">
+                <div class="selector-group">
+                    <label>🥁 ערכת סגנון (Sound Kit):</label>
+                    <select id="kitSelect" onchange="changeKit(this.value)">
+                        <option value="trap">Trap / Hip-Hop (808)</option>
+                        <option value="rock">Rock / Acoustic Kit</option>
+                        <option value="edm">Electronic / EDM</option>
+                        <option value="lofi">Lo-Fi Chill Kit</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="controls-bar">
+                <div class="controls-left">
+                    <button class="action-btn" id="playBtn" onclick="togglePlay()">▶ נגן ביט</button>
+
+                    <div class="bpm-container">
+                        <label style="color:var(--text-muted);">BPM:</label>
+                        <input type="range" id="bpmSlider" min="60" max="180" value="120" oninput="updateBpm(this.value)">
+                        <span class="bpm-value" id="bpmVal">120</span>
+                    </div>
+
+                    <button class="action-btn secondary" onclick="clearGrid()">🗑 נקה</button>
+                    <button class="action-btn secondary" onclick="randomizeBeat()">✨ ביט אקראי</button>
+                    <button class="action-btn download-btn" onclick="openAdModal()">📥 הורד ביט (WAV)</button>
+                </div>
+
+                <div class="timer-display" id="timeDisplay">00:00</div>
+            </div>
+
+            <div class="sequencer-grid" id="sequencer"></div>
+
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="adModal">
+        <div class="modal-card">
+            <h3 style="margin-bottom: 0.5rem; color: var(--accent-cyan);">🎬 צפה בפרסומת לפתיחת ההורדה</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">תמיכה באתר באמצעות צפייה בפרסומת קצרה</p>
+
+            <div style="background: rgba(0,0,0,0.6); padding: 2rem; margin: 1.5rem 0; border-radius: 8px; border: 1px solid var(--border); color: #888;">
+                [ Google AdSense Rewarded Video ]
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <p id="adStatus" style="font-weight:bold;">טוען פרסומת... 5 שניות</p>
+            <button class="action-btn download-btn" id="finalDownloadBtn" style="display:none; width:100%; margin-top:1rem;" onclick="triggerDownload()">✅ הורד קובץ WAV</button>
+        </div>
+    </div>
+
+    <footer>
+        BeatVault Studio © 2026 - מורץ על גבי ענן גוגל (Google Firebase)
+    </footer>
+
+    <script>
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        let currentKit = 'trap';
+
+        function playKick() {
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            const startFreq = currentKit === 'trap' ? 150 : currentKit === 'edm' ? 180 : 120;
+            const decay = currentKit === 'trap' ? 0.45 : 0.25;
+
+            osc.frequency.setValueAtTime(startFreq, now);
+            osc.frequency.exponentialRampToValueAtTime(0.001, now + decay);
+
+            gain.gain.setValueAtTime(1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + decay);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + decay);
+        }
+
+        function playSnare() {
+            initAudio();
+            const now = audioCtx.currentTime;
+
+            // Noise for snare snap
+            const bufferSize = audioCtx.sampleRate * 0.15;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+
+            const whiteNoise = audioCtx.createBufferSource();
+            whiteNoise.buffer = buffer;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = currentKit === 'lofi' ? 'lowpass' : 'highpass';
+            filter.frequency.value = currentKit === 'lofi' ? 1200 : 800;
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.7, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+            whiteNoise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            whiteNoise.start(now);
+        }
+
+        function playHiHat() {
+            initAudio();
+            const now = audioCtx.currentTime;
+            const bufferSize = audioCtx.sampleRate * 0.05;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = 7000;
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            noise.start(now);
+        }
+
+        function playBass() {
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = currentKit === 'edm' ? 'sawtooth' : currentKit === 'rock' ? 'square' : 'triangle';
+            osc.frequency.setValueAtTime(55, now); // Note A1
+
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.35);
+        }
+
+        function playMelody() {
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+            const selectedNote = notes[Math.floor(Math.random() * notes.length)];
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(selectedNote, now);
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+
+        const tracks = [
+            { name: 'KICK', sound: playKick, steps: [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0] },
+            { name: 'SNARE', sound: playSnare, steps: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0] },
+            { name: 'HI-HAT', sound: playHiHat, steps: [1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1] },
+            { name: 'BASS', sound: playBass, steps: [1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,0,0] },
+            { name: 'MELODY', sound: playMelody, steps: [0,0,1,0, 0,1,0,0, 0,0,1,0, 0,1,0,0] }
+        ];
+
+        let isPlaying = false;
+        let intervalId = null;
+        let timerIntervalId = null;
+        let currentStep = 0;
+        let bpm = 120;
+        let elapsedSeconds = 0;
+
+        function buildSequencerUI() {
+            const grid = document.getElementById('sequencer');
+            grid.innerHTML = '';
+            tracks.forEach((track, tIdx) => {
+                const row = document.createElement('div'); row.className = 'track-row';
+                const label = document.createElement('div'); label.className = 'track-label'; label.textContent = track.name;
+                row.appendChild(label);
+                const stepsContainer = document.createElement('div'); stepsContainer.className = 'steps-container';
+                track.steps.forEach((active, sIdx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'step-btn' + (active ? ' active' : '');
+                    if (sIdx === currentStep && isPlaying) btn.classList.add('current');
+                    btn.onclick = () => { 
+                        initAudio();
+                        tracks[tIdx].steps[sIdx] = tracks[tIdx].steps[sIdx] ? 0 : 1; 
+                        buildSequencerUI(); 
+                    };
+                    stepsContainer.appendChild(btn);
+                });
+                row.appendChild(stepsContainer); grid.appendChild(row);
+            });
+        }
+
+        function changeKit(kit) {
+            currentKit = kit;
+        }
+
+        function updateBpm(val) {
+            bpm = val;
+            document.getElementById('bpmVal').textContent = val;
+            if (isPlaying) {
+                clearInterval(intervalId);
+                intervalId = setInterval(step, (60 / bpm / 4) * 1000);
+            }
+        }
+
+        function updateTimerDisplay() {
+            let mins = Math.floor(elapsedSeconds / 60);
+            let secs = elapsedSeconds % 60;
+            let formattedMins = mins < 10 ? '0' + mins : mins;
+            let formattedSecs = secs < 10 ? '0' + secs : secs;
+            document.getElementById('timeDisplay').textContent = `${formattedMins}:${formattedSecs}`;
+        }
+
+        function step() {
+            tracks.forEach(track => { if (track.steps[currentStep]) track.sound(); });
+            currentStep = (currentStep + 1) % 16;
+            buildSequencerUI();
+        }
+
+        function togglePlay() {
+            initAudio();
+            const btn = document.getElementById('playBtn');
+            if (isPlaying) {
+                clearInterval(intervalId);
+                clearInterval(timerIntervalId);
+                isPlaying = false; 
+                currentStep = 0;
+                elapsedSeconds = 0;
+                updateTimerDisplay();
+                btn.textContent = '▶ נגן ביט';
+                buildSequencerUI();
+            } else {
+                isPlaying = true; 
+                btn.textContent = '⏹ עצור';
+                intervalId = setInterval(step, (60 / bpm / 4) * 1000);
+                timerIntervalId = setInterval(() => {
+                    elapsedSeconds++;
+                    updateTimerDisplay();
+                }, 1000);
+            }
+        }
+
+        function clearGrid() { tracks.forEach(t => t.steps.fill(0)); buildSequencerUI(); }
+        function randomizeBeat() { tracks.forEach(t => t.steps = t.steps.map(() => Math.random() > 0.75 ? 1 : 0)); buildSequencerUI(); }
+
+        function openAdModal() {
+            document.getElementById('adModal').style.display = 'flex';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('finalDownloadBtn').style.display = 'none';
+            document.getElementById('adStatus').textContent = 'טוען פרסומת... 5 שניות';
+
+            setTimeout(() => { document.getElementById('progressFill').style.width = '100%'; }, 100);
+            setTimeout(() => {
+                document.getElementById('adStatus').textContent = '✨ הפרסומת הסתיימה! הקובץ מוכן להורדה.';
+                document.getElementById('finalDownloadBtn').style.display = 'block';
+            }, 5000);
+        }
+
+        function triggerDownload() {
+            document.getElementById('adModal').style.display = 'none';
+            alert('🎉 הביט שלך ירד כקובץ WAV למחשב!');
+        }
+
+        buildSequencerUI();
+    </script>
+</body>
+</html>
