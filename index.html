@@ -1,1644 +1,322 @@
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
-<title>BeatVault — Live Coding Music</title>
-<style>
-:root{
-  --bg:#0b0d14; --panel:#121624; --panel2:#171c2e; --line:#252b44;
-  --text:#e6e9f5; --muted:#8a92b2; --accent:#8b5cf6; --accent2:#22d3ee;
-  --good:#34d399; --bad:#f87171; --warn:#fbbf24;
-  --mono: ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0; color:var(--text); min-height:100vh; display:flex; flex-direction:column;
-  background:radial-gradient(1200px 600px at 80% -10%,#1b1442 0%,transparent 60%),var(--bg);
-  font-family:system-ui,-apple-system,"Segoe UI",Heebo,Arial,sans-serif;
-}
-header{
-  display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:12px 18px;
-  border-bottom:1px solid var(--line); background:rgba(18,22,36,.85);
-  backdrop-filter:blur(8px); position:sticky; top:0; z-index:5;
-}
-.brand{display:flex; align-items:baseline; gap:10px}
-.brand b{
-  font-size:22px; letter-spacing:.5px;
-  background:linear-gradient(90deg,var(--accent),var(--accent2));
-  -webkit-background-clip:text; background-clip:text; color:transparent;
-}
-.brand small{color:var(--muted); font-size:12px; direction:ltr}
-.spacer{flex:1}
-.stat{font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px}
-.stat b{color:var(--text); font-family:var(--mono)}
-.vol{display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted)}
-.vol input{width:100px; accent-color:var(--accent)}
-.btn{
-  border:1px solid var(--line); background:var(--panel2); color:var(--text);
-  padding:8px 16px; border-radius:10px; font-size:14px; cursor:pointer;
-  font-family:inherit; transition:transform .06s, filter .15s, background .15s;
-}
-.btn:hover{filter:brightness(1.2)}
-.btn:active{transform:scale(.97)}
-.btn.run{background:linear-gradient(135deg,#7c3aed,#06b6d4); border-color:transparent; font-weight:700}
-.btn.stop{background:#3a1620; border-color:#5b2230; color:#ffb4bd}
-.btn.rec.on{background:#7f1d1d; border-color:#b91c1c; animation:pulse 1.2s infinite}
-@keyframes pulse{50%{opacity:.6}}
-.tabs{display:flex; gap:4px; padding:10px 18px 0; border-bottom:1px solid var(--line); overflow-x:auto}
-.tab{
-  background:transparent; border:0; color:var(--muted); padding:10px 18px; cursor:pointer;
-  font-size:14px; font-family:inherit; border-bottom:2px solid transparent; white-space:nowrap;
-}
-.tab:hover{color:var(--text)}
-.tab.active{color:var(--text); border-bottom-color:var(--accent2)}
-main{flex:1; padding:14px 18px 18px; min-height:0}
-.panel{display:none}
-.panel.active{display:block}
-
-/* editor */
-.editor-grid{
-  direction:ltr; display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:14px;
-  height:calc(100vh - 176px); min-height:480px;
-}
-.editor-box{
-  display:flex; direction:ltr; background:#0e1120; border:1px solid var(--line);
-  border-radius:12px; overflow:hidden; min-height:0;
-}
-#gutter{
-  width:48px; flex:none; padding:14px 8px 24px 0; text-align:right; color:#4b5375;
-  background:#0b0e1a; border-right:1px solid var(--line); font:13.5px/1.6 var(--mono);
-  overflow:hidden; white-space:pre; user-select:none;
-}
-#editor{
-  flex:1; min-width:0; resize:none; border:0; outline:0; background:transparent;
-  color:#dfe4ff; font:13.5px/1.6 var(--mono); padding:14px 14px 24px;
-  white-space:pre; overflow:auto; tab-size:2; caret-color:var(--accent2); direction:ltr; text-align:left;
-}
-.side{direction:rtl; display:flex; flex-direction:column; gap:12px; min-height:0}
-.card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px}
-.card h4{margin:0 0 8px; font-size:12px; color:var(--muted); font-weight:600; letter-spacing:.4px}
-#scope{width:100%; height:130px; display:block; border-radius:8px; background:#0b0e1a}
-#loops{display:flex; flex-wrap:wrap; gap:6px; min-height:26px; direction:ltr}
-.chip{
-  font:12px var(--mono); padding:3px 9px; border-radius:99px;
-  background:#1d2340; border:1px solid #2c3560; color:#c9d0ff;
-}
-.chip.live{border-color:#1d6b55; color:#8cf0cc; background:#0f2a25}
-.status{font-size:12px; color:var(--muted)}
-.logcard{flex:1; display:flex; flex-direction:column; min-height:0}
-#log{flex:1; overflow:auto; font:12px/1.55 var(--mono); direction:ltr}
-.ln{padding:1px 0; unicode-bidi:plaintext; white-space:pre-wrap; word-break:break-word}
-.ln.info{color:#9aa3c7}
-.ln.ok{color:var(--good)}
-.ln.warn{color:var(--warn)}
-.ln.err{color:var(--bad)}
-.ln.out{color:#cfd6ff}
-.hint{margin-top:8px; font-size:12px; color:var(--muted); text-align:center}
-kbd{
-  font:11px var(--mono); background:#1b2036; border:1px solid var(--line);
-  border-bottom-width:2px; border-radius:5px; padding:1px 6px; color:#cfd6ff;
-}
-
-/* lists */
-.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px}
-.item h3{margin:0 0 4px; font-size:16px}
-.item p{margin:0 0 10px; color:var(--muted); font-size:13px; line-height:1.5}
-.item .row{display:flex; gap:8px}
-.sm{padding:5px 12px; font-size:12px}
-table{width:100%; border-collapse:collapse; font-size:13px}
-td{padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top}
-td:first-child{font-family:var(--mono); color:#b7c2ff; direction:ltr; text-align:left; white-space:nowrap}
-.tags{display:flex; flex-wrap:wrap; gap:6px; direction:ltr}
-h2{font-size:18px; margin:18px 0 8px}
-h2:first-child{margin-top:0}
-input[type=text]{
-  background:#0e1120; border:1px solid var(--line); color:var(--text);
-  padding:8px 12px; border-radius:10px; font-family:inherit; font-size:14px; min-width:220px;
-}
-.vault-bar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; align-items:center}
-.empty{color:var(--muted); font-size:14px; padding:20px 0}
-
-@media (max-width:900px){
-  .editor-grid{grid-template-columns:1fr; height:auto}
-  .editor-box{height:55vh}
-  .side{min-height:300px}
-  .logcard{min-height:200px}
-}
-</style>
-</head>
-<body>
-
-<header>
-  <div class="brand"><b>◈ BeatVault</b><small>Live Coding Music</small></div>
-  <div class="spacer"></div>
-  <div class="stat">BPM <b id="bpmVal">60</b></div>
-  <label class="vol">🔊 <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8"></label>
-  <button id="btnRec" class="btn rec" title="הקלטת הפלט לקובץ">⏺ הקלטה</button>
-  <button id="btnStop" class="btn stop">■ עצור</button>
-  <button id="btnRun" class="btn run">▶ Run</button>
-</header>
-
-<nav class="tabs">
-  <button class="tab active" data-tab="editor">עורך</button>
-  <button class="tab" data-tab="examples">דוגמאות</button>
-  <button class="tab" data-tab="reference">מדריך</button>
-  <button class="tab" data-tab="vault">הכספת שלי</button>
-</nav>
-
-<main>
-  <section id="tab-editor" class="panel active">
-    <div class="editor-grid">
-      <div>
-        <div class="editor-box" style="height:100%">
-          <div id="gutter">1</div>
-          <textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off"></textarea>
-        </div>
-      </div>
-      <div class="side">
-        <div class="card">
-          <h4>אנליזר</h4>
-          <canvas id="scope"></canvas>
-        </div>
-        <div class="card">
-          <h4>לולאות פעילות <span class="status" id="statusTxt"></span></h4>
-          <div id="loops"></div>
-        </div>
-        <div class="card logcard">
-          <h4>פלט</h4>
-          <div id="log"></div>
-          <div class="hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> הרצה · <kbd>Ctrl</kbd>+<kbd>.</kbd> עצירה</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="tab-examples" class="panel">
-    <div class="grid" id="exampleList"></div>
-  </section>
-
-  <section id="tab-reference" class="panel">
-    <div class="card">
-      <h2>פונקציות</h2>
-      <table id="docTable"></table>
-      <h2>סינתיסייזרים (use_synth)</h2>
-      <div class="tags" id="refSynths"></div>
-      <h2>סאמפלים (sample)</h2>
-      <div class="tags" id="refSamples"></div>
-      <h2>אפקטים (with_fx)</h2>
-      <div class="tags" id="refFx"></div>
-      <h2>סולמות (scale)</h2>
-      <div class="tags" id="refScales"></div>
-      <h2>אקורדים (chord)</h2>
-      <div class="tags" id="refChords"></div>
-      <h2>פרמטרים של play</h2>
-      <table id="paramTable"></table>
-    </div>
-  </section>
-
-  <section id="tab-vault" class="panel">
-    <div class="vault-bar">
-      <input type="text" id="vaultName" placeholder="שם ליצירה...">
-      <button class="btn run sm" id="vaultSave">שמור את הקוד הנוכחי</button>
-      <button class="btn sm" id="vaultExport">ייצוא לקובץ .js</button>
-      <label class="btn sm" for="vaultImport">ייבוא מקובץ</label>
-      <input type="file" id="vaultImport" accept=".js,.txt" hidden>
-    </div>
-    <div class="grid" id="vaultList"></div>
-  </section>
-</main>
-
-<script>
-(() => {
-'use strict';
-
 /* ============================================================
-   כלים כלליים
+   סטודיו (תיבות בסגנון BandLab)
    ============================================================ */
-const $  = s => document.querySelector(s);
-const $$ = s => Array.from(document.querySelectorAll(s));
-const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const STOP = { stop: true };
+const ST = { tracks: [], playing: false, bpm: 100, steps: 16, step: 0, nextT: 0, timer: null, uid: 1 };
+const MAXSTEPS = 32;
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const midiName = m => NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1);
+const TRACK_COLORS = ['#8b5cf6','#22d3ee','#f472b6','#34d399','#fbbf24','#fb7185','#60a5fa'];
+const r2 = x => Math.round(x * 100) / 100;
 
-const logEl = $('#log');
-function log(msg, type) {
-  const d = document.createElement('div');
-  d.className = 'ln ' + (type || 'info');
-  const ts = new Date().toLocaleTimeString('he-IL', { hour12: false });
-  d.textContent = '[' + ts + '] ' + msg;
-  logEl.appendChild(d);
-  while (logEl.childNodes.length > 300) logEl.removeChild(logEl.firstChild);
-  logEl.scrollTop = logEl.scrollHeight;
+function mk(tag, cls, txt) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt !== undefined) e.textContent = txt;
+  return e;
 }
-const warned = new Set();
-function warnOnce(k, m) { if (!warned.has(k)) { warned.add(k); log(m, 'warn'); } }
-
-/* ============================================================
-   מספרים אקראיים (דטרמיניסטי עם use_random_seed)
-   ============================================================ */
-let rngState = (Math.random() * 4294967296) >>> 0;
-function rng() {
-  rngState = (rngState + 0x6D2B79F5) | 0;
-  let t = rngState;
-  t = Math.imul(t ^ (t >>> 15), t | 1);
-  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-}
-function shuffleArr(a) {
-  const r = Array.from(a);
-  for (let i = r.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    const t = r[i]; r[i] = r[j]; r[j] = t;
-  }
-  return r;
-}
-
-/* ============================================================
-   תורת מוזיקה: תווים, סולמות, אקורדים, Ring
-   ============================================================ */
-const NOTE_BASE = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
-function note(n) {
-  if (n === null || n === undefined || n === false) return null;
-  if (typeof n === 'number') return n;
-  const s = String(n).trim().toLowerCase().replace(/^:/, '');
-  if (s === '' || s === 'r' || s === 'rest' || s === '_' || s === 'nil') return null;
-  if (/^-?\d+(\.\d+)?$/.test(s)) return parseFloat(s);
-  const m = s.match(/^([a-g])([sb#]?)(-?\d+)?$/);
-  if (!m) throw new Error('תו לא מוכר: ' + n);
-  let v = NOTE_BASE[m[1]];
-  if (m[2] === 's' || m[2] === '#') v++;
-  else if (m[2] === 'b') v--;
-  const oct = m[3] !== undefined ? parseInt(m[3], 10) : 4;
-  return 12 * (oct + 1) + v;
-}
-const midi_to_hz = m => 440 * Math.pow(2, (m - 69) / 12);
-const hz_to_midi = h => 69 + 12 * Math.log2(h / 440);
-
-class Ring extends Array {
-  static get [Symbol.species]() { return Array; }
-  at(i) {
-    const n = this.length;
-    return n ? this[((Math.trunc(i) % n) + n) % n] : undefined;
-  }
-  tick(name) { return this.at(API.tick(name)); }
-  look(name) { return this.at(API.look(name)); }
-  choose() { return this[Math.floor(rng() * this.length)]; }
-  shuffle() { return mkRing(shuffleArr(this)); }
-  rev() { return mkRing(Array.from(this).reverse()); }
-  take(n) { return mkRing(Array.from(this).slice(0, n)); }
-}
-function mkRing(a) { const r = new Ring(); for (const x of a) r.push(x); return r; }
-
-const SCALES = {
-  major:[0,2,4,5,7,9,11], ionian:[0,2,4,5,7,9,11],
-  minor:[0,2,3,5,7,8,10], aeolian:[0,2,3,5,7,8,10],
-  dorian:[0,2,3,5,7,9,10], phrygian:[0,1,3,5,7,8,10], lydian:[0,2,4,6,7,9,11],
-  mixolydian:[0,2,4,5,7,9,10], locrian:[0,1,3,5,6,8,10],
-  major_pentatonic:[0,2,4,7,9], minor_pentatonic:[0,3,5,7,10],
-  blues_minor:[0,3,5,6,7,10], blues_major:[0,2,3,4,7,9],
-  harmonic_minor:[0,2,3,5,7,8,11], melodic_minor:[0,2,3,5,7,9,11],
-  hungarian_minor:[0,2,3,6,7,8,11], whole_tone:[0,2,4,6,8,10],
-  chromatic:[0,1,2,3,4,5,6,7,8,9,10,11]
-};
-const CHORDS = {
-  major:[0,4,7], maj:[0,4,7], minor:[0,3,7], min:[0,3,7],
-  major7:[0,4,7,11], maj7:[0,4,7,11], minor7:[0,3,7,10], min7:[0,3,7,10], m7:[0,3,7,10],
-  dom7:[0,4,7,10], '7':[0,4,7,10], dim:[0,3,6], dim7:[0,3,6,9], aug:[0,4,8],
-  sus2:[0,2,7], sus4:[0,5,7], add9:[0,4,7,14], major9:[0,4,7,11,14], minor9:[0,3,7,10,14], m9:[0,3,7,10,14],
-  minor6:[0,3,7,9], major6:[0,4,7,9]
-};
-function scale(root, name, o) {
-  o = o || {};
-  const r = note(root);
-  if (r === null) throw new Error('scale צריך תו שורש');
-  const key = String(name === undefined ? 'major' : name).replace(/^:/, '').toLowerCase();
-  const iv = SCALES[key];
-  if (!iv) throw new Error('סולם לא מוכר: ' + name);
-  const oct = o.num_octaves || 1, out = [];
-  for (let k = 0; k < oct; k++) for (const i of iv) out.push(r + 12 * k + i);
-  out.push(r + 12 * oct);
-  return mkRing(out);
-}
-function chord(root, name, o) {
-  o = o || {};
-  const r = note(root);
-  if (r === null) throw new Error('chord צריך תו שורש');
-  const key = String(name === undefined ? 'major' : name).replace(/^:/, '').toLowerCase();
-  const iv = CHORDS[key];
-  if (!iv) throw new Error('אקורד לא מוכר: ' + name);
-  let notes = [];
-  const oct = o.num_octaves || 1;
-  for (let k = 0; k < oct; k++) for (const i of iv) notes.push(r + 12 * k + i);
-  for (let i = 0; i < (o.invert || 0); i++) { const f = notes.shift(); notes.push(f + 12); }
-  return mkRing(notes);
-}
-function spread(h, s) {
-  const out = [];
-  for (let i = 0; i < s; i++) out.push(Math.floor((i * h) / s) !== Math.floor(((i - 1) * h) / s));
-  return mkRing(out);
-}
-
-/* ============================================================
-   מנוע אודיו
-   ============================================================ */
-const A = {
-  ctx: null, bus: null, comp: null, master: null, analyser: null,
-  noise: null, streamDest: null, vol: 0.8, voices: 0, irCache: {}, runStart: 0
-};
-
-function satCurve(k) {
-  const n = 2048, c = new Float32Array(n);
-  for (let i = 0; i < n; i++) { const x = i * 2 / (n - 1) - 1; c[i] = Math.tanh(k * x) / k; }
-  return c;
-}
-function distCurve(k) {
-  const n = 2048, c = new Float32Array(n), nm = Math.tanh(k);
-  for (let i = 0; i < n; i++) { const x = i * 2 / (n - 1) - 1; c[i] = Math.tanh(k * x) / nm; }
-  return c;
-}
-
-function initAudio() {
-  if (!A.ctx) {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) throw new Error('הדפדפן לא תומך ב-Web Audio API');
-    const ctx = new Ctx({ latencyHint: 'interactive' });
-    A.ctx = ctx;
-    A.comp = ctx.createDynamicsCompressor();
-    A.comp.threshold.value = -16; A.comp.knee.value = 18; A.comp.ratio.value = 5;
-    A.comp.attack.value = 0.004; A.comp.release.value = 0.2;
-    const sat = ctx.createWaveShaper();
-    sat.curve = satCurve(1.4); sat.oversample = '2x';
-    A.master = ctx.createGain(); A.master.gain.value = A.vol;
-    A.analyser = ctx.createAnalyser();
-    A.analyser.fftSize = 2048; A.analyser.smoothingTimeConstant = 0.8;
-    A.bus = ctx.createGain();
-    A.bus.connect(A.comp); A.comp.connect(sat); sat.connect(A.master);
-    A.master.connect(A.analyser); A.master.connect(ctx.destination);
-    if (ctx.createMediaStreamDestination) {
-      A.streamDest = ctx.createMediaStreamDestination();
-      A.master.connect(A.streamDest);
-    }
-    const len = ctx.sampleRate * 2;
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    A.noise = buf;
-  }
-  if (A.ctx.state === 'suspended') A.ctx.resume();
-}
-
-function getIR(room) {
-  const key = Math.round(room * 10);
-  if (A.irCache[key]) return A.irCache[key];
-  const ctx = A.ctx, sr = ctx.sampleRate;
-  const secs = 0.6 + (key / 10) * 3.4;
-  const len = Math.floor(sr * secs);
-  const buf = ctx.createBuffer(2, len, sr);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = buf.getChannelData(ch);
-    let y = 0, sum = 0;
-    for (let i = 0; i < len; i++) {
-      const x = Math.random() * 2 - 1;
-      y = y * 0.35 + x * 0.65;
-      const e = Math.pow(1 - i / len, 3) * (1 - Math.exp(-i / (0.004 * sr)));
-      d[i] = y * e; sum += d[i] * d[i];
-    }
-    const k = Math.sqrt(0.7 / Math.max(sum, 1e-9));
-    for (let i = 0; i < len; i++) d[i] *= k;
-  }
-  A.irCache[key] = buf;
-  return buf;
-}
-
-/* ============================================================
-   סינתיסייזרים
-   ============================================================ */
-const S = o => Object.assign({
-  res: 0.1, filter_env: 0, filter_decay: 0.3, cutoff: 100,
-  attack: 0.01, decay: 0.12, sustain_level: 0.7, sustain: 0.2, release: 0.5, gain: 0.5
-}, o);
-const saw = (det, g) => ({ type: 'sawtooth', det: det || 0, gain: g === undefined ? 1 : g });
-
-const SYNTHS = {
-  sine:   S({ oscs: [{ type: 'sine' }], gain: 0.6, cutoff: 130 }),
-  tri:    S({ oscs: [{ type: 'triangle' }, { type: 'sine', mult: 2, gain: 0.12 }], gain: 0.55, cutoff: 120 }),
-  square: S({ oscs: [{ type: 'square', det: -5 }, { type: 'square', det: 5 }], gain: 0.22, cutoff: 88, res: 0.05, filter_env: 10 }),
-  saw:    S({ oscs: [saw(-7), saw(7)], gain: 0.3, cutoff: 100, res: 0.12, filter_env: 14, filter_decay: 0.3 }),
-  dsaw:   S({ oscs: [saw(-14), saw(14)], gain: 0.28, cutoff: 110, res: 0.1, filter_env: 10 }),
-  supersaw: S({ oscs: [saw(-22), saw(-11), saw(0), saw(11), saw(22)], gain: 0.14, cutoff: 105, res: 0.08, filter_env: 12, release: 0.6 }),
-  prophet: S({
-    oscs: [saw(-9), saw(9), { type: 'square', mult: 0.5, gain: 0.6 }],
-    gain: 0.22, cutoff: 92, res: 0.25, filter_env: 24, filter_decay: 0.45,
-    attack: 0.01, decay: 0.3, sustain_level: 0.55, sustain: 0.2, release: 0.6
-  }),
-  tb303: S({
-    oscs: [saw(0)], gain: 0.45, cutoff: 72, res: 0.78, filter_env: 34, filter_decay: 0.18,
-    attack: 0.003, decay: 0.1, sustain_level: 0.8, sustain: 0.1, release: 0.15
-  }),
-  pluck: S({
-    oscs: [saw(-4), saw(4), { type: 'triangle', mult: 2, gain: 0.4 }],
-    gain: 0.25, cutoff: 92, res: 0.15, filter_env: 38, filter_decay: 0.2,
-    attack: 0.002, decay: 0.5, sustain_level: 0.02, sustain: 0, release: 0.25
-  }),
-  bass: S({
-    oscs: [{ type: 'sine', gain: 1 }, saw(0, 0.5)], gain: 0.5, cutoff: 68, res: 0.15,
-    filter_env: 22, filter_decay: 0.2, attack: 0.005, decay: 0.2, sustain_level: 0.8, sustain: 0.25, release: 0.3
-  }),
-  sub: S({
-    oscs: [{ type: 'sine' }, { type: 'triangle', mult: 0.5, gain: 0.7 }], gain: 0.65, cutoff: 80,
-    attack: 0.01, decay: 0.1, sustain_level: 0.9, sustain: 0.3, release: 0.35
-  }),
-  pad: S({
-    oscs: [saw(-16, 1), saw(-6, 1), saw(6, 1), saw(16, 1), { type: 'triangle', gain: 0.6 }],
-    gain: 0.14, cutoff: 82, res: 0.1,
-    attack: 0.9, decay: 0.4, sustain_level: 0.85, sustain: 1, release: 1.4
-  }),
-  blade: S({
-    oscs: [saw(-7), saw(7)], vib: { rate: 5.5, depth: 18 }, gain: 0.28, cutoff: 98, res: 0.15,
-    attack: 0.35, decay: 0.2, sustain_level: 0.8, sustain: 0.4, release: 0.5
-  }),
-  fm: S({
-    fm: { ratio: 2, depth: 2.2 }, gain: 0.5, cutoff: 120,
-    attack: 0.005, decay: 0.4, sustain_level: 0.3, sustain: 0.1, release: 0.4
-  }),
-  bell: S({
-    oscs: [{ type: 'sine' }, { type: 'sine', mult: 2.76, gain: 0.5 }, { type: 'sine', mult: 5.4, gain: 0.3 }, { type: 'sine', mult: 8.93, gain: 0.18 }],
-    gain: 0.35, cutoff: 130, attack: 0.002, decay: 1.2, sustain_level: 0.001, sustain: 0, release: 0.8
-  }),
-  piano: S({
-    oscs: [{ type: 'triangle' }, { type: 'triangle', det: 6, mult: 2, gain: 0.35 }, saw(0, 0.12)],
-    gain: 0.4, cutoff: 95, res: 0.05, filter_env: 25, filter_decay: 0.6,
-    attack: 0.003, decay: 0.9, sustain_level: 0.08, sustain: 0.2, release: 0.6
-  }),
-  chiplead: S({
-    oscs: [{ type: 'square' }, { type: 'square', det: 3, gain: 0.5 }], gain: 0.2, cutoff: 115,
-    attack: 0.002, decay: 0.08, sustain_level: 0.7, sustain: 0.1, release: 0.12
-  }),
-  noise: S({
-    noise: true, gain: 0.4, cutoff: 100, res: 0.2,
-    attack: 0.01, decay: 0.1, sustain_level: 0.6, sustain: 0.1, release: 0.3
-  })
-};
-const SYNTH_ALIAS = {
-  beep: 'sine', saw_beep: 'saw', mod_saw: 'dsaw', tech_saws: 'supersaw',
-  dark_ambience: 'pad', pretty_bell: 'bell', dull_bell: 'bell', sine_wave: 'sine'
-};
-
-function triggerSynth(name, midi, o, c) {
-  const ctx = A.ctx;
-  if (!ctx) return;
-  let key = String(name).replace(/^:/, '').toLowerCase();
-  key = SYNTH_ALIAS[key] || key;
-  const P = SYNTHS[key];
-  if (!P) { warnOnce('syn' + key, 'סינתיסייזר לא מוכר: "' + name + '" (ראה טאב מדריך)'); return; }
-  if (A.voices > 110) return;
-
-  const bs = 60 / c.bpm;
-  const t0 = Math.max(c.vtime, ctx.currentTime + 0.005);
-  const freq = midi_to_hz(midi);
-  const v = k => (o[k] !== undefined ? +o[k] : P[k]);
-  const amp = Math.max(0.0001, o.amp !== undefined ? +o.amp : 1);
-
-  const at = Math.max(0.004, v('attack') * bs);
-  const de = Math.max(0, v('decay') * bs);
-  const su = Math.max(0, v('sustain') * bs);
-  const re = Math.max(0.02, v('release') * bs);
-  const sl = clamp(v('sustain_level'), 0.0001, 1);
-  const tA = t0 + at, tD = tA + de, tS = tD + su, tE = tS + re;
-  const slAmp = Math.max(0.0001, amp * sl);
-
-  // מתעטף (Envelope) ADSR
-  const env = ctx.createGain();
-  env.gain.setValueAtTime(0.0001, t0);
-  env.gain.linearRampToValueAtTime(amp, tA);
-  if (de > 0.0005) env.gain.exponentialRampToValueAtTime(slAmp, tD);
-  else env.gain.setValueAtTime(slAmp, tA);
-  env.gain.setValueAtTime(slAmp, tS);
-  env.gain.exponentialRampToValueAtTime(0.0001, tE);
-
-  // פילטר Lowpass עם מתעטף פילטר
-  const cut = v('cutoff');
-  const base = clamp(midi_to_hz(cut), 30, 19000);
-  const fe = v('filter_env');
-  const filt = ctx.createBiquadFilter();
-  filt.type = 'lowpass';
-  filt.Q.value = clamp(v('res'), 0, 1) * 20;
-  if (fe > 0.5) {
-    const peakHz = clamp(midi_to_hz(cut + fe), 30, 19000);
-    filt.frequency.setValueAtTime(peakHz, t0);
-    filt.frequency.exponentialRampToValueAtTime(base, t0 + Math.max(0.01, v('filter_decay') * bs));
-  } else {
-    filt.frequency.setValueAtTime(base, t0);
-  }
-
-  const mix = ctx.createGain();
-  mix.connect(filt); filt.connect(env);
-  const disc = [env, filt, mix];
-  if (ctx.createStereoPanner) {
-    const p = ctx.createStereoPanner();
-    p.pan.value = clamp(+o.pan || 0, -1, 1);
-    env.connect(p); p.connect(c.out); disc.push(p);
-  } else {
-    env.connect(c.out);
-  }
-
-  const srcs = [];
-  const stopAt = tE + 0.05;
-
-  if (P.noise) {
-    const s = ctx.createBufferSource();
-    s.buffer = A.noise; s.loop = true;
-    const g = ctx.createGain(); g.gain.value = P.gain;
-    s.connect(g); g.connect(mix); disc.push(g);
-    s.start(t0, rng() * 1.5); s.stop(stopAt); srcs.push(s);
-  } else if (P.fm) {
-    const ratio = P.fm.ratio;
-    const car = ctx.createOscillator(); car.type = 'sine'; car.frequency.setValueAtTime(freq, t0);
-    const mod = ctx.createOscillator(); mod.type = 'sine'; mod.frequency.setValueAtTime(freq * ratio, t0);
-    const idx = Math.max(1, (o.depth !== undefined ? +o.depth : P.fm.depth) * freq * ratio);
-    const mg = ctx.createGain();
-    mg.gain.setValueAtTime(idx, t0);
-    mg.gain.exponentialRampToValueAtTime(Math.max(0.5, idx * 0.12), t0 + (tE - t0) * 0.8);
-    mod.connect(mg); mg.connect(car.frequency);
-    const cg = ctx.createGain(); cg.gain.value = P.gain;
-    car.connect(cg); cg.connect(mix);
-    disc.push(mg, cg);
-    car.start(t0); mod.start(t0); car.stop(stopAt); mod.stop(stopAt);
-    srcs.push(car, mod);
-  } else {
-    const ds = o.detune !== undefined ? +o.detune : 1;
-    const targets = [];
-    for (const od of P.oscs) {
-      const osc = ctx.createOscillator();
-      osc.type = od.type;
-      osc.frequency.setValueAtTime(freq * (od.mult || 1), t0);
-      osc.detune.setValueAtTime((od.det || 0) * ds, t0);
-      const og = ctx.createGain();
-      og.gain.value = (od.gain !== undefined ? od.gain : 1) * P.gain;
-      osc.connect(og); og.connect(mix); disc.push(og);
-      osc.start(t0); osc.stop(stopAt);
-      srcs.push(osc); targets.push(osc);
-    }
-    if (P.vib) {
-      const lfo = ctx.createOscillator();
-      lfo.frequency.value = P.vib.rate;
-      const lg = ctx.createGain();
-      lg.gain.setValueAtTime(0, t0);
-      lg.gain.linearRampToValueAtTime(P.vib.depth, tA + 0.15);
-      lfo.connect(lg);
-      targets.forEach(os => lg.connect(os.detune));
-      lfo.start(t0); lfo.stop(stopAt);
-      srcs.push(lfo); disc.push(lg);
-    }
-  }
-
-  A.voices++;
-  srcs[0].onended = () => {
-    A.voices = Math.max(0, A.voices - 1);
-    disc.forEach(n => { try { n.disconnect(); } catch (e) {} });
-  };
-}
-
-/* ============================================================
-   סאמפלים (מסונתזים)
-   ============================================================ */
-const bq = (type, f, q) => {
-  const b = A.ctx.createBiquadFilter();
-  b.type = type; b.frequency.value = clamp(f, 20, 19000); b.Q.value = q || 0.7;
-  return b;
-};
-const noiseSrc = (t, len) => {
-  const s = A.ctx.createBufferSource();
-  s.buffer = A.noise; s.loop = true;
-  s.start(t, rng() * 1.5); s.stop(t + len + 0.02);
+function mkSel(opts, val, onch) {
+  const s = mk('select', 'sel');
+  opts.forEach(o => {
+    const op = document.createElement('option');
+    op.value = Array.isArray(o) ? o[0] : o;
+    op.textContent = Array.isArray(o) ? o[1] : o;
+    s.appendChild(op);
+  });
+  s.value = String(val);
+  s.addEventListener('change', () => onch(s.value));
   return s;
-};
-const oscN = (type, f0, t, len) => {
-  const o = A.ctx.createOscillator();
-  o.type = type; o.frequency.setValueAtTime(f0, t);
-  o.start(t); o.stop(t + len + 0.02);
-  return o;
-};
-const envG = (t, peak, len) => {
-  const g = A.ctx.createGain();
-  g.gain.setValueAtTime(Math.max(0.0002, peak), t);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-  return g;
-};
-
-const SAMPLES = {};
-function defKick(names, p) {
-  const fn = (ctx, t, rate, dest) => {
-    const o = oscN('sine', p.f0 * rate, t, p.len);
-    o.frequency.exponentialRampToValueAtTime(p.f1 * rate, t + p.pd);
-    const g = envG(t, 0.9, p.len);
-    const sh = ctx.createWaveShaper(); sh.curve = distCurve(p.k);
-    o.connect(g); g.connect(sh); sh.connect(dest);
-    const n = noiseSrc(t, 0.012);
-    const hp = bq('highpass', 2500);
-    const cg = envG(t, 0.3, 0.012);
-    n.connect(hp); hp.connect(cg); cg.connect(dest);
-    return p.len;
-  };
-  names.forEach(n => { SAMPLES[n] = fn; });
 }
-defKick(['bd_haus', 'bd_zum'], { f0: 165, f1: 46, pd: 0.07, len: 0.6, k: 2.0 });
-defKick(['bd_fat', 'bd_boom', 'drum_heavy_kick'], { f0: 140, f1: 40, pd: 0.09, len: 0.85, k: 2.6 });
-defKick(['bd_tek'], { f0: 210, f1: 52, pd: 0.05, len: 0.4, k: 3.0 });
 
-function defSnare(names, p) {
-  const fn = (ctx, t, rate, dest) => {
-    const o = oscN('triangle', p.f * rate, t, 0.2);
-    o.frequency.exponentialRampToValueAtTime(p.f * 0.6 * rate, t + 0.08);
-    const og = envG(t, p.tone, 0.17);
-    o.connect(og); og.connect(dest);
-    const n = noiseSrc(t, p.len);
-    const hp = bq('highpass', p.hp * rate);
-    const ng = envG(t, p.noise, p.len);
-    n.connect(hp); hp.connect(ng); ng.connect(dest);
-    return p.len;
-  };
-  names.forEach(n => { SAMPLES[n] = fn; });
+const rootMidi = t => 12 * (t.oct + 1) + t.pc;
+function trackRows(t) {
+  return Array.from(scale(rootMidi(t), t.scale, { num_octaves: 2 })).reverse();
 }
-defSnare(['sn_dub', 'sn_zome'], { f: 190, tone: 0.5, noise: 0.6, hp: 1800, len: 0.22 });
-defSnare(['sn_dolf', 'drum_snare_hard'], { f: 220, tone: 0.35, noise: 0.8, hp: 1400, len: 0.3 });
-
-function defHat(names, p) {
-  const fn = (ctx, t, rate, dest) => {
-    const n = noiseSrc(t, p.len);
-    const hp = bq('highpass', p.hp * rate);
-    const pk = bq('peaking', 10000, 1); pk.gain.value = 6;
-    const g = envG(t, p.amp, p.len);
-    n.connect(hp); hp.connect(pk); pk.connect(g); g.connect(dest);
-    return p.len;
-  };
-  names.forEach(n => { SAMPLES[n] = fn; });
+function shiftGrid(t, d) {
+  const ng = {};
+  Object.keys(t.grid).forEach(m => { ng[+m + d] = t.grid[m]; });
+  t.grid = ng;
 }
-defHat(['hat_tap'], { len: 0.1, hp: 8500, amp: 0.5 });
-defHat(['hat_snap'], { len: 0.14, hp: 7000, amp: 0.6 });
-defHat(['drum_cymbal_closed'], { len: 0.13, hp: 7500, amp: 0.55 });
-defHat(['drum_cymbal_open'], { len: 0.8, hp: 6500, amp: 0.5 });
-
-SAMPLES.clap = (ctx, t, rate, dest) => {
-  const n = noiseSrc(t, 0.3);
-  const bp = bq('bandpass', 1500 * rate, 1.1);
-  const g = ctx.createGain();
-  const amp = 0.9;
-  g.gain.setValueAtTime(amp, t);
-  g.gain.exponentialRampToValueAtTime(amp * 0.2, t + 0.009);
-  g.gain.setValueAtTime(amp, t + 0.011);
-  g.gain.exponentialRampToValueAtTime(amp * 0.2, t + 0.02);
-  g.gain.setValueAtTime(amp, t + 0.022);
-  g.gain.exponentialRampToValueAtTime(amp * 0.2, t + 0.031);
-  g.gain.setValueAtTime(amp, t + 0.033);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
-  n.connect(bp); bp.connect(g); g.connect(dest);
-  return 0.3;
-};
-SAMPLES.drum_clap = SAMPLES.clap;
-
-SAMPLES.drum_tom_mid_hard = (ctx, t, rate, dest) => {
-  const o = oscN('sine', 230 * rate, t, 0.45);
-  o.frequency.exponentialRampToValueAtTime(120 * rate, t + 0.12);
-  const g = envG(t, 0.8, 0.45);
-  o.connect(g); g.connect(dest);
-  return 0.45;
-};
-SAMPLES.tom = SAMPLES.drum_tom_mid_hard;
-
-SAMPLES.perc_bell = (ctx, t, rate, dest) => {
-  const mults = [1, 2.76, 5.4, 8.93], gains = [0.5, 0.3, 0.2, 0.12];
-  let maxLen = 0;
-  mults.forEach((m, i) => {
-    const len = 1.8 / (1 + i * 0.7);
-    maxLen = Math.max(maxLen, len);
-    const o = oscN('sine', 1175 * m * rate, t, len);
-    const g = envG(t, gains[i], len);
-    o.connect(g); g.connect(dest);
+function pruneGrid(t) {
+  const rows = new Set(trackRows(t).map(String));
+  Object.keys(t.grid).forEach(m => { if (!rows.has(m)) delete t.grid[m]; });
+}
+function setNotes(t, map) {
+  Object.keys(map).forEach(m => {
+    t.grid[m] = Array(MAXSTEPS).fill(false);
+    map[m].forEach(i => { t.grid[m][i] = true; });
   });
-  return maxLen;
-};
-SAMPLES.elec_beep = (ctx, t, rate, dest) => {
-  const o = oscN('sine', 880 * rate, t, 0.18);
-  const g = envG(t, 0.35, 0.18);
-  o.connect(g); g.connect(dest);
-  return 0.18;
-};
-SAMPLES.elec_blip = (ctx, t, rate, dest) => {
-  const o = oscN('square', 1900 * rate, t, 0.09);
-  const lp = bq('lowpass', 5000);
-  const g = envG(t, 0.25, 0.09);
-  o.connect(lp); lp.connect(g); g.connect(dest);
-  return 0.09;
-};
-SAMPLES.perc_snap = (ctx, t, rate, dest) => {
-  const n = noiseSrc(t, 0.09);
-  const bp = bq('bandpass', 2600 * rate, 1.5);
-  const g = envG(t, 0.8, 0.09);
-  n.connect(bp); bp.connect(g); g.connect(dest);
-  return 0.09;
-};
-SAMPLES.ambi_swoosh = (ctx, t, rate, dest) => {
-  const n = noiseSrc(t, 0.9);
-  const bp = bq('bandpass', 300, 2);
-  bp.frequency.setValueAtTime(300 * rate, t);
-  bp.frequency.exponentialRampToValueAtTime(5000 * rate, t + 0.9);
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.linearRampToValueAtTime(0.6, t + 0.45);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
-  n.connect(bp); bp.connect(g); g.connect(dest);
-  return 0.9;
-};
-SAMPLES.bass_hit_c = (ctx, t, rate, dest) => {
-  const f = 32.7 * rate;
-  const o1 = oscN('sawtooth', f, t, 0.9);
-  const o2 = oscN('sine', f, t, 0.9);
-  const lp = bq('lowpass', 400, 4);
-  lp.frequency.setValueAtTime(400, t);
-  lp.frequency.exponentialRampToValueAtTime(70, t + 0.5);
-  const g = envG(t, 0.7, 0.9);
-  o1.connect(lp); lp.connect(g); o2.connect(g); g.connect(dest);
-  return 0.9;
-};
-
-function triggerSample(name, o, c) {
-  const ctx = A.ctx;
-  if (!ctx) return;
-  const key = String(name).replace(/^:/, '').toLowerCase();
-  const def = SAMPLES[key];
-  if (!def) { warnOnce('smp' + key, 'סאמפל לא מוכר: "' + name + '" (ראה טאב מדריך)'); return; }
-  const t0 = Math.max(c.vtime, ctx.currentTime + 0.005);
-  const rate = o.rate !== undefined ? Math.max(0.05, +o.rate) : 1;
-  const amp = o.amp !== undefined ? +o.amp : 1;
-  const sg = ctx.createGain(); sg.gain.value = amp;
-  const nodes = [sg];
-  let last = sg;
-  if (o.cutoff !== undefined) {
-    const f = bq('lowpass', midi_to_hz(+o.cutoff), 0.7);
-    last.connect(f); last = f; nodes.push(f);
-  }
-  if (ctx.createStereoPanner) {
-    const p = ctx.createStereoPanner();
-    p.pan.value = clamp(+o.pan || 0, -1, 1);
-    last.connect(p); last = p; nodes.push(p);
-  }
-  last.connect(c.out);
-  const len = def(ctx, t0, rate, sg, o);
-  setTimeout(() => nodes.forEach(n => { try { n.disconnect(); } catch (e) {} }),
-    Math.max(0, (t0 - ctx.currentTime + len + 0.5) * 1000));
+}
+function addTrack(kind, inst, extra) {
+  const t = Object.assign({
+    id: ST.uid++, kind: kind, inst: inst || (kind === 'drum' ? 'bd_haus' : 'prophet'),
+    vol: 0.8, mute: false, solo: false, color: TRACK_COLORS[ST.uid % TRACK_COLORS.length],
+    cells: Array(MAXSTEPS).fill(false), grid: {}, pc: 0, oct: 3, scale: 'minor_pentatonic', len: 1, ph: null
+  }, extra || {});
+  ST.tracks.push(t);
+  return t;
 }
 
-/* ============================================================
-   אפקטים (with_fx)
-   ============================================================ */
-const FX_NAMES = ['reverb', 'echo', 'distortion', 'lpf', 'hpf', 'wobble', 'slicer'];
-function makeFx(name, o, c) {
-  if (FX_NAMES.indexOf(name) < 0) throw new Error('אפקט לא מוכר: "' + name + '" (זמינים: ' + FX_NAMES.join(', ') + ')');
-  const ctx = A.ctx, bs = 60 / c.bpm;
-  const input = ctx.createGain(), output = ctx.createGain();
-  output.connect(c.out);
-  const nodes = [input, output], oscs = [];
-  let tail = 2;
-  const G = v => { const g = ctx.createGain(); g.gain.value = v; nodes.push(g); return g; };
-  const F = (type, f, q) => {
-    const b = ctx.createBiquadFilter(); b.type = type;
-    b.frequency.value = clamp(f, 20, 19000); b.Q.value = q || 0; nodes.push(b); return b;
-  };
-  const num = (k, d) => (o[k] !== undefined ? +o[k] : d);
-
-  switch (name) {
-    case 'reverb': {
-      const room = clamp(num('room', 0.6), 0, 1), mix = clamp(num('mix', 0.4), 0, 1);
-      const cv = ctx.createConvolver(); cv.buffer = getIR(room); nodes.push(cv);
-      const dry = G(Math.cos(mix * Math.PI / 2)), wet = G(Math.sin(mix * Math.PI / 2));
-      input.connect(dry); dry.connect(output);
-      input.connect(cv); cv.connect(wet); wet.connect(output);
-      tail = 0.6 + room * 3.4 + 0.5;
-      break;
-    }
-    case 'echo': {
-      const phase = Math.max(0.01, num('phase', 0.25));
-      const decay = Math.max(0.1, num('decay', 2));
-      const mix = clamp(num('mix', 0.4), 0, 1);
-      const dl = ctx.createDelay(4);
-      dl.delayTime.value = clamp(phase * bs, 0.01, 3.9); nodes.push(dl);
-      const fb = G(clamp(Math.pow(0.001, phase / decay), 0, 0.92));
-      const lp = F('lowpass', 4500, 0);
-      const wet = G(mix);
-      input.connect(output);
-      input.connect(dl); dl.connect(lp); lp.connect(wet); wet.connect(output);
-      lp.connect(fb); fb.connect(dl);
-      tail = Math.min(10, decay * bs + 1);
-      break;
-    }
-    case 'distortion': {
-      const amt = clamp(num('distort', 0.5), 0, 0.99), mix = clamp(num('mix', 1), 0, 1);
-      const sh = ctx.createWaveShaper();
-      sh.curve = distCurve(1 + amt * 40); sh.oversample = '4x'; nodes.push(sh);
-      const pre = G(1.5), post = G(0.45);
-      const dry = G(Math.cos(mix * Math.PI / 2)), wet = G(Math.sin(mix * Math.PI / 2));
-      input.connect(dry); dry.connect(output);
-      input.connect(pre); pre.connect(sh); sh.connect(post); post.connect(wet); wet.connect(output);
-      tail = 1.5;
-      break;
-    }
-    case 'lpf':
-    case 'hpf': {
-      const f = F(name === 'lpf' ? 'lowpass' : 'highpass',
-        midi_to_hz(num('cutoff', name === 'lpf' ? 90 : 50)), clamp(num('res', 0), 0, 1) * 20);
-      input.connect(f); f.connect(output);
-      tail = 1.5;
-      break;
-    }
-    case 'wobble': {
-      const ph = Math.max(0.05, num('phase', 0.5));
-      const lo = midi_to_hz(num('cutoff_min', 55)), hi = midi_to_hz(num('cutoff_max', 105));
-      const f = F('lowpass', (lo + hi) / 2, clamp(num('res', 0.4), 0, 1) * 20);
-      const lfo = ctx.createOscillator(); lfo.frequency.value = 1 / (ph * bs);
-      const lg = G((hi - lo) / 2);
-      lfo.connect(lg); lg.connect(f.frequency); lfo.start(); oscs.push(lfo);
-      input.connect(f); f.connect(output);
-      tail = 1.5;
-      break;
-    }
-    case 'slicer': {
-      const ph = Math.max(0.03, num('phase', 0.25));
-      const g = G(0.5);
-      const lfo = ctx.createOscillator(); lfo.type = 'square'; lfo.frequency.value = 1 / (ph * bs);
-      const lg = G(0.5);
-      lfo.connect(lg); lg.connect(g.gain); lfo.start(); oscs.push(lfo);
-      input.connect(g); g.connect(output);
-      tail = 1.5;
-      break;
-    }
-  }
-  return {
-    input: input, tail: tail,
-    stop: function () {
-      oscs.forEach(x => { try { x.stop(); } catch (e) {} });
-      nodes.forEach(n => { try { n.disconnect(); } catch (e) {} });
-    }
-  };
+function preview(t, m) {
+  try { initAudio(); } catch (e) { return; }
+  const c = { vtime: A.ctx.currentTime, bpm: ST.bpm, out: A.bus };
+  if (t.kind === 'drum') triggerSample(t.inst, { amp: t.vol }, c);
+  else triggerSynth(t.inst, m === undefined ? rootMidi(t) : m, { amp: t.vol, sustain: 0.15, release: 0.25 }, c);
 }
 
-/* ============================================================
-   מתזמן (לולאות עם זמן וירטואלי)
-   ============================================================ */
-let globalBpm = 60;
-const loops = new Map();
-let cur = null;
-let seen = null;
-const lookahead = () => (document.hidden ? 1.2 : 0.25);
-
-function newCtx(name) {
-  return {
-    name: name, vtime: 0, bpm: globalBpm, synth: 'prophet', defaults: {}, transpose: 0,
-    out: null, ticks: {}, running: true, fn: null, timer: null, iter: 0,
-    base: { synth: 'prophet', defaults: {}, transpose: 0 }
-  };
-}
-const main = newCtx('main');
-
-function C() {
-  if (!cur) throw new Error('הפונקציה זמינה רק בתוך הרצת קוד או live_loop');
-  return cur;
-}
-function killLoop(L) {
-  L.running = false;
-  clearTimeout(L.timer);
-  if (loops.get(L.name) === L) loops.delete(L.name);
-}
-function iterate(L) {
-  if (!L.running || loops.get(L.name) !== L) return;
-  const ctx = A.ctx;
-  if (L.vtime < ctx.currentTime - 0.25) L.vtime = ctx.currentTime + 0.05;
-  L.synth = L.base.synth;
-  L.defaults = Object.assign({}, L.base.defaults);
-  L.transpose = L.base.transpose;
-  L.out = A.bus;
-  const v0 = L.vtime;
-  const prev = cur;
-  cur = L;
-  try {
-    L.fn();
-  } catch (e) {
-    cur = prev;
-    killLoop(L);
-    if (e === STOP) { log('live_loop "' + L.name + '" נעצר (stop)', 'warn'); return; }
-    log('שגיאה ב-live_loop "' + L.name + '": ' + (e && e.message ? e.message : e), 'err');
-    return;
-  }
-  cur = prev;
-  if (!(L.vtime > v0)) {
-    killLoop(L);
-    log('live_loop "' + L.name + '" ללא sleep (או sleep(0)) — עצרתי אותה כדי למנוע קיפאון', 'err');
-    return;
-  }
-  L.iter++;
-  L.timer = setTimeout(() => iterate(L), Math.max(0, (L.vtime - ctx.currentTime - lookahead()) * 1000));
-}
-function stopAll() {
-  Array.from(loops.values()).forEach(killLoop);
-  if (!A.ctx) return;
-  const old = A.bus, now = A.ctx.currentTime;
-  old.gain.cancelScheduledValues(now);
-  old.gain.setTargetAtTime(0, now, 0.02);
-  const nb = A.ctx.createGain();
-  nb.connect(A.comp);
-  A.bus = nb;
-  A.voices = 0;
-  setTimeout(() => { try { old.disconnect(); } catch (e) {} }, 1500);
-  log('נעצר', 'info');
-}
-
-/* ============================================================
-   ה-API שזמין בקוד של המשתמש
-   ============================================================ */
-const API = Object.create(null);
-const fmt = x => {
-  if (Array.isArray(x)) return '[' + Array.from(x).map(fmt).join(', ') + ']';
-  if (typeof x === 'number') return String(Math.round(x * 1000) / 1000);
-  if (x && typeof x === 'object') { try { return JSON.stringify(x); } catch (e) { return String(x); } }
-  return String(x);
-};
-
-Object.assign(API, {
-  use_bpm: b => {
-    const c = C(); b = +b;
-    if (!(b > 0)) throw new Error('use_bpm צריך מספר חיובי');
-    if (c === main) {
-      globalBpm = b; main.bpm = b;
-      loops.forEach(L => { L.bpm = b; });
-      $('#bpmVal').textContent = String(Math.round(b * 10) / 10);
-    } else { c.bpm = b; }
-  },
-  sleep: b => {
-    const c = C(); b = +b;
-    if (!(b >= 0)) throw new Error('sleep צריך מספר גדול או שווה ל-0');
-    c.vtime += b * 60 / c.bpm;
-  },
-  stop: () => { if (cur === main) return; throw STOP; },
-  live_loop: (name, fn) => {
-    if (typeof fn !== 'function') throw new Error('live_loop("שם", () => { ... }) — חסרה פונקציה');
-    name = String(name);
-    if (seen) seen.add(name);
-    const base = { synth: main.synth, defaults: Object.assign({}, main.defaults), transpose: main.transpose };
-    let L = loops.get(name);
-    if (L) { L.fn = fn; L.base = base; return; }
-    L = newCtx(name);
-    L.fn = fn; L.base = base; L.bpm = globalBpm; L.vtime = main.vtime;
-    loops.set(name, L);
-    L.timer = setTimeout(() => iterate(L), Math.max(0, (L.vtime - A.ctx.currentTime - lookahead()) * 1000));
-  },
-  play: (n, o) => {
-    const c = C(); o = o || {};
-    if (Array.isArray(n)) { for (const x of n) API.play(x, o); return; }
-    const m = note(n);
-    if (m === null) return;
-    triggerSynth(c.synth, m + c.transpose, Object.assign({}, c.defaults, o), c);
-  },
-  play_pattern_timed: (notes, times, o) => {
-    const ts = Array.isArray(times) ? times : [times];
-    Array.from(notes).forEach((n, i) => { API.play(n, o); API.sleep(ts[i % ts.length]); });
-  },
-  sample: (name, o) => { triggerSample(name, o || {}, C()); },
-  use_synth: s => { C().synth = String(s); },
-  use_synth_defaults: o => { C().defaults = Object.assign({}, o || {}); },
-  use_transpose: n => { C().transpose = +n || 0; },
-  use_random_seed: n => { rngState = ((+n) >>> 0) || 1; },
-  set_volume: v => {
-    A.vol = clamp(+v, 0, 1.5);
-    if (A.master) A.master.gain.setTargetAtTime(A.vol, A.ctx.currentTime, 0.02);
-    $('#vol').value = String(Math.min(1, A.vol));
-  },
-  with_fx: (name, a, b) => {
-    const c = C();
-    let o = {}, fn;
-    if (typeof a === 'function') fn = a; else { o = a || {}; fn = b; }
-    if (typeof fn !== 'function') throw new Error('with_fx("reverb", {...}, () => { ... }) — חסרה פונקציה');
-    const fx = makeFx(String(name).replace(/^:/, '').toLowerCase(), o, c);
-    const prev = c.out, t1 = c.vtime;
-    c.out = fx.input;
-    try { fn(); }
-    finally {
-      c.out = prev;
-      const life = (Math.max(c.vtime, t1) - A.ctx.currentTime) + fx.tail + 0.5;
-      setTimeout(() => fx.stop(), Math.max(0, life * 1000));
-    }
-  },
-  tick: name => {
-    const c = C(), k = name === undefined ? 'default' : String(name);
-    c.ticks[k] = c.ticks[k] === undefined ? 0 : c.ticks[k] + 1;
-    return c.ticks[k];
-  },
-  look: name => {
-    const c = C(), k = name === undefined ? 'default' : String(name);
-    return c.ticks[k] === undefined ? 0 : c.ticks[k];
-  },
-  ring: function () {
-    const a = Array.from(arguments);
-    return mkRing(a.length === 1 && Array.isArray(a[0]) ? a[0] : a);
-  },
-  knit: function () {
-    const a = Array.from(arguments), out = [];
-    for (let i = 0; i + 1 < a.length; i += 2) for (let k = 0; k < a[i + 1]; k++) out.push(a[i]);
-    return mkRing(out);
-  },
-  range: (a, b, step) => {
-    step = step || 1;
-    const out = [];
-    for (let x = a; step > 0 ? x < b : x > b; x += step) out.push(x);
-    return mkRing(out);
-  },
-  bools: function () { return mkRing(Array.from(arguments).map(x => !!x)); },
-  scale: scale,
-  chord: chord,
-  spread: spread,
-  note: note,
-  midi_to_hz: midi_to_hz,
-  hz_to_midi: hz_to_midi,
-  choose: arr => arr[Math.floor(rng() * arr.length)],
-  shuffle: arr => mkRing(shuffleArr(arr)),
-  rand: m => rng() * (m === undefined ? 1 : m),
-  rand_i: m => Math.floor(rng() * (m === undefined ? 2 : m)),
-  rrand: (a, b) => a + rng() * (b - a),
-  rrand_i: (a, b) => a + Math.floor(rng() * (b - a + 1)),
-  one_in: n => Math.floor(rng() * n) === 0,
-  dice: n => 1 + Math.floor(rng() * (n === undefined ? 6 : n)),
-  times: (n, fn) => { for (let i = 0; i < n; i++) fn(i); },
-  puts: function () { log(Array.from(arguments).map(fmt).join(' '), 'out'); }
-});
-
-/* ============================================================
-   הרצת קוד
-   ============================================================ */
-const editor = $('#editor');
-
-function runCode() {
-  try { initAudio(); } catch (e) { log(e.message, 'err'); return; }
-  warned.clear();
-  seen = new Set();
-  A.runStart = A.ctx.currentTime + 0.12;
-  main.vtime = A.runStart; main.bpm = globalBpm;
-  main.synth = 'prophet'; main.defaults = {}; main.transpose = 0; main.out = A.bus;
-  const prev = cur;
-  cur = main;
-  let ok = true;
-  try {
-    const fn = new Function('API', 'with (API) {\n' + editor.value + '\n}');
-    fn(API);
-  } catch (e) {
-    ok = false;
-    log((e instanceof SyntaxError ? 'שגיאת תחביר: ' : 'שגיאה: ') + (e && e.message ? e.message : e), 'err');
-  }
-  cur = prev;
-  if (ok) {
-    Array.from(loops.entries()).forEach(([n, L]) => {
-      if (!seen.has(n)) { killLoop(L); log('live_loop "' + n + '" הוסרה מהקוד ונעצרה', 'info'); }
-    });
-    log('הורץ ✓ · ' + loops.size + ' לולאות פעילות', 'ok');
-  }
-  seen = null;
-}
-
-/* ============================================================
-   ממשק: טאבים, עורך, לולאות, כפתורים
-   ============================================================ */
-function showTab(id) {
-  $$('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
-  $$('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + id));
-  if (id === 'vault') renderVault();
-}
-$$('.tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
-
-const gutter = $('#gutter');
-let gutterLines = 0, saveTimer = null;
-function updateGutter() {
-  const n = editor.value.split('\n').length;
-  if (n !== gutterLines) {
-    let s = '';
-    for (let i = 1; i <= n; i++) s += i + '\n';
-    gutter.textContent = s; gutterLines = n;
-  }
-  gutter.scrollTop = editor.scrollTop;
-}
-function onEdit() {
-  updateGutter();
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    try { localStorage.setItem('beatvault.current', editor.value); } catch (e) {}
-  }, 400);
-}
-editor.addEventListener('input', onEdit);
-editor.addEventListener('scroll', () => { gutter.scrollTop = editor.scrollTop; });
-
-function replaceRange(start, end, text) {
-  editor.focus();
-  editor.setSelectionRange(start, end);
-  let done = false;
-  try { done = document.execCommand('insertText', false, text); } catch (e) { done = false; }
-  if (!done) { editor.setRangeText(text, start, end, 'end'); onEdit(); }
-}
-const lineStart = (v, s) => (s > 0 ? v.lastIndexOf('\n', s - 1) + 1 : 0);
-
-editor.addEventListener('keydown', e => {
-  const mod = e.ctrlKey || e.metaKey;
-  if (mod && e.key === 'Enter') { e.preventDefault(); runCode(); return; }
-  if (mod && e.key === '.') { e.preventDefault(); stopAll(); return; }
-  if (e.key === 'Tab') {
+let paint = null;
+document.addEventListener('pointerup', () => { paint = null; });
+document.addEventListener('pointercancel', () => { paint = null; });
+function bindCell(el, get, set, prev) {
+  el.addEventListener('pointerdown', e => {
     e.preventDefault();
-    const s = editor.selectionStart, en = editor.selectionEnd, v = editor.value;
-    if (s === en && !e.shiftKey) { replaceRange(s, en, '  '); return; }
-    const ls = lineStart(v, s);
-    const block = v.slice(ls, en);
-    const nb = e.shiftKey ? block.replace(/^ {1,2}/gm, '') : block.replace(/^/gm, '  ');
-    replaceRange(ls, en, nb);
-    editor.setSelectionRange(ls, ls + nb.length);
-    return;
-  }
-  if (e.key === 'Enter' && !e.shiftKey && !mod && !e.altKey) {
-    e.preventDefault();
-    const s = editor.selectionStart, en = editor.selectionEnd, v = editor.value;
-    const line = v.slice(lineStart(v, s), s);
-    const ind = line.match(/^\s*/)[0];
-    const extra = /[{(\[]\s*$/.test(line) ? '  ' : '';
-    replaceRange(s, en, '\n' + ind + extra);
-  }
-});
+    try { el.releasePointerCapture(e.pointerId); } catch (x) {}
+    paint = !get();
+    set(paint);
+    if (paint && prev) prev();
+  });
+  el.addEventListener('pointerenter', () => {
+    if (paint !== null && get() !== paint) set(paint);
+  });
+}
 
-$('#btnRun').addEventListener('click', runCode);
-$('#btnStop').addEventListener('click', stopAll);
-$('#vol').addEventListener('input', e => {
-  A.vol = +e.target.value;
-  if (A.master) A.master.gain.setTargetAtTime(A.vol, A.ctx.currentTime, 0.02);
-});
+function renderTrack(t) {
+  const el = mk('div', 'track');
+  el.style.setProperty('--tc', t.color);
 
-// לולאות פעילות
-function refreshLoops() {
-  const box = $('#loops');
-  box.textContent = '';
-  if (loops.size === 0) {
-    const s = document.createElement('span');
-    s.className = 'status'; s.textContent = '—';
-    box.appendChild(s);
+  // ----- כותרת הערוץ -----
+  const head = mk('div', 'thead');
+  const r1 = mk('div', 'trow');
+  r1.appendChild(mk('span', 'tdot'));
+  r1.appendChild(mkSel(t.kind === 'drum' ? Object.keys(SAMPLES) : Object.keys(SYNTHS), t.inst, v => {
+    t.inst = v; preview(t);
+  }));
+  const del = mk('button', 'btn sm', '✕');
+  del.title = 'מחק ערוץ';
+  del.addEventListener('click', () => { ST.tracks = ST.tracks.filter(x => x !== t); renderStudio(); });
+  r1.appendChild(del);
+  head.appendChild(r1);
+
+  const r2row = mk('div', 'trow');
+  const vol = document.createElement('input');
+  vol.type = 'range'; vol.min = 0; vol.max = 1; vol.step = 0.01; vol.value = t.vol;
+  vol.addEventListener('input', () => { t.vol = +vol.value; });
+  const bm = mk('button', 'btn sm tog', 'M'); bm.title = 'השתק';
+  bm.classList.toggle('on', t.mute);
+  bm.addEventListener('click', () => { t.mute = !t.mute; bm.classList.toggle('on', t.mute); });
+  const bs = mk('button', 'btn sm tog s', 'S'); bs.title = 'סולו';
+  bs.classList.toggle('on', t.solo);
+  bs.addEventListener('click', () => { t.solo = !t.solo; bs.classList.toggle('on', t.solo); });
+  const cl = mk('button', 'btn sm', 'נקה');
+  cl.addEventListener('click', () => {
+    t.cells = Array(MAXSTEPS).fill(false); t.grid = {}; renderStudio();
+  });
+  r2row.appendChild(vol); r2row.appendChild(bm); r2row.appendChild(bs); r2row.appendChild(cl);
+  head.appendChild(r2row);
+
+  if (t.kind === 'synth') {
+    const r3 = mk('div', 'trow');
+    r3.appendChild(mkSel(NOTE_NAMES.map((n, i) => [i, n]), t.pc, v => {
+      const old = rootMidi(t); t.pc = +v; shiftGrid(t, rootMidi(t) - old); renderStudio();
+    }));
+    r3.appendChild(mkSel([1, 2, 3, 4, 5, 6], t.oct, v => {
+      const old = rootMidi(t); t.oct = +v; shiftGrid(t, rootMidi(t) - old); renderStudio();
+    }));
+    r3.appendChild(mkSel(Object.keys(SCALES), t.scale, v => {
+      t.scale = v; pruneGrid(t); renderStudio();
+    }));
+    r3.appendChild(mkSel([[1, 'תו: 1 צעד'], [2, 'תו: 2 צעדים'], [4, 'תו: 4 צעדים']], t.len, v => { t.len = +v; }));
+    head.appendChild(r3);
+  }
+  el.appendChild(head);
+
+  // ----- תיבת הקליפ -----
+  const clip = mk('div', 'clip');
+  const area = mk('div', 'area');
+  area.style.minWidth = (ST.steps * 24) + 'px';
+  const cells = mk('div', 'cells ' + (t.kind === 'drum' ? 'drum' : 'syn'));
+  cells.style.gridTemplateColumns = 'repeat(' + ST.steps + ', 1fr)';
+
+  if (t.kind === 'drum') {
+    for (let i = 0; i < ST.steps; i++) {
+      const c = mk('div', 'cell' + (((i >> 2) & 1) ? ' alt' : '') + (t.cells[i] ? ' on' : ''));
+      bindCell(c, () => !!t.cells[i], v => { t.cells[i] = v; c.classList.toggle('on', v); }, () => preview(t));
+      cells.appendChild(c);
+    }
   } else {
-    loops.forEach((L, name) => {
-      const c = document.createElement('span');
-      c.className = 'chip live'; c.textContent = '● ' + name;
-      box.appendChild(c);
+    const rows = trackRows(t);
+    const keys = mk('div', 'keys');
+    rows.forEach(m => {
+      keys.appendChild(mk('div', 'key' + ((m - rootMidi(t)) % 12 === 0 ? ' rt' : ''), midiName(m)));
+      for (let i = 0; i < ST.steps; i++) {
+        const on = !!(t.grid[m] && t.grid[m][i]);
+        const c = mk('div', 'cell' + (((i >> 2) & 1) ? ' alt' : '') + (on ? ' on' : ''));
+        bindCell(c,
+          () => !!(t.grid[m] && t.grid[m][i]),
+          v => {
+            if (!t.grid[m]) t.grid[m] = Array(MAXSTEPS).fill(false);
+            t.grid[m][i] = v; c.classList.toggle('on', v);
+          },
+          () => preview(t, m));
+        cells.appendChild(c);
+      }
     });
+    clip.appendChild(keys);
   }
-  $('#statusTxt').textContent = loops.size ? '(' + loops.size + ')' : '';
+  area.appendChild(cells);
+  const ph = mk('div', 'ph');
+  area.appendChild(ph);
+  t.ph = ph;
+  clip.appendChild(area);
+  el.appendChild(clip);
+  return el;
 }
-setInterval(refreshLoops, 250);
 
-// אנליזר
-const scope = $('#scope'), sctx = scope.getContext('2d');
-let fData = null, tData = null;
-function drawScope() {
-  requestAnimationFrame(drawScope);
-  if (document.hidden || !$('#tab-editor').classList.contains('active')) return;
-  const d = window.devicePixelRatio || 1;
-  const r = scope.getBoundingClientRect();
-  const w = Math.max(1, Math.round(r.width * d)), h = Math.max(1, Math.round(r.height * d));
-  if (scope.width !== w || scope.height !== h) { scope.width = w; scope.height = h; }
-  sctx.clearRect(0, 0, w, h);
-  if (!A.analyser) {
-    sctx.strokeStyle = 'rgba(138,146,178,.4)'; sctx.lineWidth = d;
-    sctx.beginPath(); sctx.moveTo(0, h / 2); sctx.lineTo(w, h / 2); sctx.stroke();
+function renderStudio() {
+  const box = $('#stTracks');
+  box.textContent = '';
+  if (!ST.tracks.length) {
+    box.appendChild(mk('div', 'empty', 'אין ערוצים. הוסף תוף או סינת׳ מהסרגל למעלה.'));
     return;
   }
-  if (!fData) {
-    fData = new Uint8Array(A.analyser.frequencyBinCount);
-    tData = new Uint8Array(A.analyser.fftSize);
-  }
-  A.analyser.getByteFrequencyData(fData);
-  A.analyser.getByteTimeDomainData(tData);
-  const bars = 64, bw = w / bars;
-  const grad = sctx.createLinearGradient(0, h, 0, 0);
-  grad.addColorStop(0, 'rgba(139,92,246,.55)');
-  grad.addColorStop(1, 'rgba(34,211,238,.55)');
-  sctx.fillStyle = grad;
-  for (let i = 0; i < bars; i++) {
-    const idx = Math.floor(Math.pow(i / bars, 1.8) * (fData.length * 0.5));
-    const bh = (fData[idx] / 255) * h * 0.9;
-    sctx.fillRect(i * bw + 1, h - bh, Math.max(1, bw - 2), bh);
-  }
-  sctx.strokeStyle = '#e6e9f5'; sctx.lineWidth = 1.5 * d;
-  sctx.beginPath();
-  for (let i = 0; i < tData.length; i += 2) {
-    const x = (i / (tData.length - 1)) * w, y = (tData[i] / 255) * h;
-    if (i === 0) sctx.moveTo(x, y); else sctx.lineTo(x, y);
-  }
-  sctx.stroke();
+  ST.tracks.forEach(t => box.appendChild(renderTrack(t)));
 }
-requestAnimationFrame(drawScope);
 
-// הקלטה
-let rec = null, recChunks = [];
-$('#btnRec').addEventListener('click', () => {
-  const btn = $('#btnRec');
-  if (rec) { rec.stop(); return; }
+function movePlayhead(step) {
+  ST.tracks.forEach(t => {
+    if (!t.ph) return;
+    t.ph.style.display = 'block';
+    t.ph.style.left = (step * 100 / ST.steps) + '%';
+    t.ph.style.width = (100 / ST.steps) + '%';
+  });
+}
+
+function studioStep(step, t0) {
+  const anySolo = ST.tracks.some(x => x.solo);
+  const c = { vtime: t0, bpm: ST.bpm, out: A.bus };
+  ST.tracks.forEach(t => {
+    if (t.mute || (anySolo && !t.solo)) return;
+    if (t.kind === 'drum') {
+      if (t.cells[step]) triggerSample(t.inst, { amp: t.vol }, c);
+    } else {
+      Object.keys(t.grid).forEach(m => {
+        if (t.grid[m][step]) {
+          triggerSynth(t.inst, +m, {
+            amp: t.vol,
+            sustain: Math.max(0, t.len * 0.25 - 0.05),
+            release: 0.25
+          }, c);
+        }
+      });
+    }
+  });
+}
+
+function studioTick() {
+  if (!ST.playing) return;
+  const ctx = A.ctx, stepDur = 60 / ST.bpm / 4;
+  if (ST.nextT < ctx.currentTime - 0.1) ST.nextT = ctx.currentTime + 0.05;
+  while (ST.nextT < ctx.currentTime + lookahead()) {
+    const s = ST.step, tt = ST.nextT;
+    studioStep(s, tt);
+    setTimeout(() => { if (ST.playing) movePlayhead(s); }, Math.max(0, (tt - ctx.currentTime) * 1000));
+    ST.nextT += stepDur;
+    ST.step = (ST.step + 1) % ST.steps;
+  }
+}
+
+function studioStart() {
   try { initAudio(); } catch (e) { log(e.message, 'err'); return; }
-  if (!window.MediaRecorder || !A.streamDest) { log('הדפדפן לא תומך בהקלטה', 'err'); return; }
-  recChunks = [];
-  rec = new MediaRecorder(A.streamDest.stream);
-  rec.ondataavailable = ev => { if (ev.data && ev.data.size) recChunks.push(ev.data); };
-  rec.onstop = () => {
-    const mt = (rec && rec.mimeType) || 'audio/webm';
-    const blob = new Blob(recChunks, { type: mt });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'beatvault-' + Date.now() + '.webm';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    rec = null;
-    btn.classList.remove('on'); btn.textContent = '⏺ הקלטה';
-    log('ההקלטה נשמרה', 'ok');
+  if (ST.playing) return;
+  ST.playing = true;
+  ST.step = 0;
+  ST.nextT = A.ctx.currentTime + 0.1;
+  ST.timer = setInterval(studioTick, 25);
+  $('#stPlay').classList.add('on');
+  studioTick();
+  log('סטודיו: מנגן', 'ok');
+}
+function studioStop() {
+  if (!ST.playing) return;
+  ST.playing = false;
+  clearInterval(ST.timer);
+  $('#stPlay').classList.remove('on');
+  ST.tracks.forEach(t => { if (t.ph) t.ph.style.display = 'none'; });
+  log('סטודיו: נעצר', 'info');
+}
+
+function studioExport() {
+  const anySolo = ST.tracks.some(x => x.solo);
+  const L = ['// נוצר מהסטודיו של BeatVault', 'use_bpm(' + ST.bpm + ');', ''];
+  const used = {};
+  ST.tracks.forEach(t => {
+    if (t.mute || (anySolo && !t.solo)) return;
+    used[t.inst] = (used[t.inst] || 0) + 1;
+    const name = t.inst + (used[t.inst] > 1 ? '_' + used[t.inst] : '');
+    L.push("live_loop('" + name + "', () => {");
+    if (t.kind === 'drum') {
+      const p = [];
+      for (let i = 0; i < ST.steps; i++) p.push(t.cells[i] ? 1 : 0);
+      L.push('  const p = [' + p.join(', ') + '];');
+      L.push("  if (p[tick('s') % " + ST.steps + "]) sample('" + t.inst + "', {amp: " + r2(t.vol) + '});');
+    } else {
+      const p = [];
+      for (let i = 0; i < ST.steps; i++) {
+        const ns = [];
+        Object.keys(t.grid).forEach(m => { if (t.grid[m][i]) ns.push(+m); });
+        ns.sort((a, b) => a - b);
+        p.push('[' + ns.join(', ') + ']');
+      }
+      L.push("  use_synth('" + t.inst + "');");
+      L.push('  const p = [' + p.join(', ') + '];');
+      L.push("  const n = p[tick('s') % " + ST.steps + '];');
+      L.push('  if (n.length) play(n, {amp: ' + r2(t.vol) + ', sustain: ' + r2(Math.max(0, t.len * 0.25 - 0.05)) + ', release: 0.25});');
+    }
+    L.push('  sleep(0.25);');
+    L.push('});');
+    L.push('');
+  });
+  setCode(L.join('\n'));
+  showTab('editor');
+  log('הסטודיו יוצא לקוד. לחץ Run כדי לנגן אותו כ-live_loop', 'ok');
+}
+
+function loadDemo() {
+  ST.tracks = [];
+  const d = (inst, steps, extra) => {
+    const t = addTrack('drum', inst, extra);
+    steps.forEach(i => { t.cells[i] = true; });
+    return t;
   };
-  rec.start();
-  btn.classList.add('on'); btn.textContent = '■ סיים הקלטה';
-  log('מקליט...', 'info');
-});
-
-/* ============================================================
-   דוגמאות
-   ============================================================ */
-const EXAMPLES = [
-{
-  title: 'Chill Jam',
-  desc: 'תופים, בס אסיד, אקורדים עם ריוורב ולהיט אקראי עם אקו.',
-  code: `// BeatVault — Chill Jam
-// Ctrl+Enter = Run   |   Ctrl+. = Stop
-use_bpm(100);
-
-live_loop('drums', () => {
-  const step = tick('step') % 8;
-  if (step % 4 === 0) sample('bd_haus', {amp: 1});
-  if (step % 4 === 2) sample('sn_dub', {amp: 0.8});
-  sample('hat_tap', {amp: step % 2 ? 0.5 : 0.3, pan: rrand(-0.3, 0.3)});
-  sleep(0.5);
-});
-
-live_loop('bass', () => {
-  use_synth('tb303');
-  const root = ring('c2', 'ab1', 'eb2', 'bb1').tick('bar');
-  for (let i = 0; i < 8; i++) {
-    const n = note(root) + (i % 4 === 3 ? 12 : 0);
-    play(n, {release: 0.22, cutoff: 62 + (i % 2) * 14, res: 0.7, amp: i % 2 ? 0.45 : 0.7});
-    sleep(0.5);
-  }
-});
-
-live_loop('chords', () => {
-  use_synth('pad');
-  const roots = ring('c3', 'ab2', 'eb3', 'bb2');
-  const kinds = ring('minor7', 'major7', 'major7', 'dom7');
-  const i = tick('prog');
-  with_fx('reverb', {room: 0.8, mix: 0.45}, () => {
-    play(chord(roots.at(i), kinds.at(i)), {attack: 1, sustain: 2, release: 1.5, amp: 0.6});
-    sleep(4);
-  });
-});
-
-live_loop('lead', () => {
-  use_synth('prophet');
-  const s = scale('c4', 'minor_pentatonic', {num_octaves: 2});
-  with_fx('echo', {phase: 0.75, decay: 4, mix: 0.35}, () => {
-    for (let i = 0; i < 8; i++) {
-      if (one_in(2)) play(s.choose(), {release: 0.4, cutoff: rrand(75, 100), amp: 0.45, pan: rrand(-0.5, 0.5)});
-      sleep(0.5);
-    }
-  });
-});
-`
-},
-{
-  title: 'Acid Techno',
-  desc: 'קיק ארבע על הרצפה וקו TB-303 עם פילטר רזוננטי.',
-  code: `// Acid Techno
-use_bpm(128);
-
-live_loop('kick', () => {
-  sample('bd_tek', {amp: 1.1});
-  sleep(1);
-});
-
-live_loop('hats', () => {
-  sleep(0.5);
-  sample('drum_cymbal_closed', {amp: 0.5});
-  sleep(0.5);
-});
-
-live_loop('clap', () => {
-  sleep(1);
-  sample('clap', {amp: 0.7});
-  sleep(1);
-});
-
-live_loop('acid', () => {
-  use_synth('tb303');
-  const pat = ring('e2', 'e2', 'e3', 'e2', 'g2', 'e2', 'e3', 'a2');
-  with_fx('echo', {phase: 0.375, decay: 2, mix: 0.25}, () => {
-    for (let i = 0; i < 8; i++) {
-      play(pat.tick('n'), {release: 0.18, cutoff: rrand(62, 95), res: 0.75, filter_env: 32, amp: 0.7});
-      sleep(0.25);
-    }
-  });
-});
-`
-},
-{
-  title: 'Ambient Drift',
-  desc: 'פדים רחבים, פעמונים אקראיים וריוורב ארוך.',
-  code: `// Ambient Drift
-use_bpm(70);
-
-live_loop('pad', () => {
-  use_synth('pad');
-  const roots = ring('d3', 'bb2', 'f3', 'c3');
-  const kinds = ring('minor7', 'major7', 'major7', 'dom7');
-  const i = tick('prog');
-  with_fx('reverb', {room: 0.95, mix: 0.6}, () => {
-    play(chord(roots.at(i), kinds.at(i)), {attack: 2, sustain: 3, release: 3, amp: 0.7, cutoff: 80});
-    sleep(8);
-  });
-});
-
-live_loop('bells', () => {
-  use_synth('bell');
-  const s = scale('d5', 'minor_pentatonic', {num_octaves: 1});
-  with_fx('reverb', {room: 0.9, mix: 0.5}, () => {
-    for (let i = 0; i < 4; i++) {
-      if (one_in(2)) play(s.choose(), {amp: 0.5, pan: rrand(-0.6, 0.6)});
-      sleep(1);
-    }
-  });
-});
-
-live_loop('sub', () => {
-  use_synth('sub');
-  play(ring('d2', 'bb1', 'f2', 'c2').tick('s'), {attack: 0.5, sustain: 6, release: 1.5, amp: 0.8});
-  sleep(8);
-});
-`
-},
-{
-  title: 'Pluck Arp',
-  desc: 'ארפג׳יו על אקורד Am7 מעל ביט דאבי.',
-  code: `// Pluck Arp
-use_bpm(120);
-
-live_loop('beat', () => {
-  sample('bd_fat', {amp: 1});
-  sleep(1);
-  sample('sn_dolf', {amp: 0.7});
-  sleep(1);
-});
-
-live_loop('hat', () => {
-  sample('hat_snap', {amp: 0.4, pan: rrand(-0.4, 0.4)});
-  sleep(0.25);
-});
-
-live_loop('arp', () => {
-  use_synth('pluck');
-  const notes = chord('a3', 'minor7', {num_octaves: 2});
-  play(notes.tick('a'), {release: 0.3, amp: 0.8, pan: rrand(-0.4, 0.4)});
-  sleep(0.25);
-});
-
-live_loop('bassline', () => {
-  use_synth('bass');
-  play(ring('a1', 'a1', 'e2', 'g1').tick('b'), {release: 0.4, amp: 0.9});
-  sleep(0.5);
-  play('a2', {release: 0.15, amp: 0.5});
-  sleep(0.5);
-});
-`
-},
-{
-  title: 'Euclidean Rhythms',
-  desc: 'קצבים אוקלידיים עם spread — פוליריתמיקה אוטומטית.',
-  code: `// Euclidean Rhythms
-use_bpm(110);
-
-live_loop('k', () => {
-  if (spread(5, 16).tick('k')) sample('bd_haus', {amp: 1});
-  sleep(0.25);
-});
-
-live_loop('h', () => {
-  if (spread(7, 16).tick('h')) sample('hat_snap', {amp: 0.5});
-  sleep(0.25);
-});
-
-live_loop('s', () => {
-  if (spread(3, 8).tick('s')) sample('sn_dub', {amp: 0.8});
-  sleep(0.25);
-});
-
-live_loop('bassline', () => {
-  use_synth('sub');
-  if (spread(5, 8).tick('b')) {
-    play(ring('e1', 'e1', 'g1', 'a1').tick('n'), {release: 0.3, amp: 0.9});
-  }
-  sleep(0.5);
-});
-
-live_loop('melody', () => {
-  use_synth('chiplead');
-  const s = scale('e4', 'minor_pentatonic', {num_octaves: 2});
-  if (one_in(3)) play(s.choose(), {release: 0.15, amp: 0.4, pan: rrand(-0.5, 0.5)});
-  sleep(0.25);
-});
-`
-}
-];
-
-function renderExamples() {
-  const box = $('#exampleList');
-  box.textContent = '';
-  EXAMPLES.forEach(ex => {
-    const card = document.createElement('div');
-    card.className = 'card item';
-    const h = document.createElement('h3'); h.textContent = ex.title;
-    const p = document.createElement('p'); p.textContent = ex.desc;
-    const row = document.createElement('div'); row.className = 'row';
-    const b1 = document.createElement('button');
-    b1.className = 'btn sm'; b1.textContent = 'טען לעורך';
-    b1.addEventListener('click', () => { setCode(ex.code); showTab('editor'); log('נטענה הדוגמה "' + ex.title + '"', 'info'); });
-    const b2 = document.createElement('button');
-    b2.className = 'btn run sm'; b2.textContent = '▶ טען והרץ';
-    b2.addEventListener('click', () => { setCode(ex.code); showTab('editor'); runCode(); });
-    row.appendChild(b1); row.appendChild(b2);
-    card.appendChild(h); card.appendChild(p); card.appendChild(row);
-    box.appendChild(card);
-  });
-}
-function setCode(code) {
-  editor.value = code;
-  onEdit();
-  editor.scrollTop = 0;
+  d('bd_haus', [0, 4, 8, 12]);
+  d('sn_dub', [4, 12]);
+  d('hat_tap', [0, 2, 4, 6, 8, 10, 12, 14], { vol: 0.5 });
+  const b = addTrack('synth', 'bass', { oct: 2, pc: 0, vol: 0.9, len: 2 });
+  setNotes(b, { 36: [0, 6, 8, 14], 39: [3], 43: [10] });
+  const l = addTrack('synth', 'prophet', { oct: 4, pc: 0, vol: 0.6, len: 1 });
+  setNotes(l, { 67: [0, 8], 70: [3], 72: [6], 63: [10], 65: [12] });
 }
 
-/* ============================================================
-   מדריך
-   ============================================================ */
-const DOCS = [
-  ['use_bpm(120)', 'קובע טמפו. בקוד הראשי משפיע על כל הלולאות.'],
-  ['live_loop("name", () => {...})', 'לולאה אינסופית. חייבת לכלול sleep. הרצה חוזרת מעדכנת את הלולאה בלי להפסיק אותה.'],
-  ['sleep(beats)', 'מקדם את הזמן בביטים.'],
-  ['play(note, {opts})', 'מנגן תו: מספר MIDI, שם ("c4", "eb3", "fs2") או Ring/מערך (אקורד).'],
-  ['play_pattern_timed(notes, times, opts)', 'מנגן רצף תווים עם sleep אחרי כל אחד.'],
-  ['sample("bd_haus", {amp, pan, rate, cutoff})', 'מנגן סאמפל מסונתז.'],
-  ['use_synth("tb303")', 'בוחר סינתיסייזר.'],
-  ['use_synth_defaults({...})', 'ברירות מחדל לפרמטרים של play.'],
-  ['use_transpose(n)', 'מזיז את כל התווים בחצאי טון.'],
-  ['with_fx("reverb", {opts}, () => {...})', 'מעביר את הצלילים בתוך הבלוק דרך אפקט.'],
-  ['ring(...)', 'מעגל: .tick(), .at(i), .choose(), .shuffle(), .rev(), .take(n).'],
-  ['tick("name") / look("name")', 'מונה פר-לולאה. tick מקדם ומחזיר, look רק קורא.'],
-  ['scale("c4", "minor_pentatonic", {num_octaves: 2})', 'מחזיר Ring של תווי הסולם.'],
-  ['chord("c3", "minor7", {num_octaves, invert})', 'מחזיר Ring של אקורד.'],
-  ['spread(hits, steps)', 'קצב אוקלידי (Ring של true/false).'],
-  ['knit("a", 3, "b", 1)', 'Ring שחוזר על ערכים: a,a,a,b.'],
-  ['choose(arr) / shuffle(arr)', 'בחירה אקראית / ערבוב.'],
-  ['rand(max), rrand(a,b), rrand_i(a,b), rand_i(n), one_in(n), dice(n)', 'אקראיות.'],
-  ['use_random_seed(n)', 'מקבע זרע אקראי (תוצאות חוזרות).'],
-  ['note("c4"), midi_to_hz(n), hz_to_midi(f)', 'המרות.'],
-  ['set_volume(0..1)', 'עוצמה כללית.'],
-  ['puts(...)', 'מדפיס לחלון הפלט.'],
-  ['stop()', 'עוצר את הלולאה הנוכחית.']
-];
-const PARAMS = [
-  ['amp', 'עוצמה (ברירת מחדל 1)'],
-  ['pan', '‎-1 שמאל … 1 ימין'],
-  ['attack / decay / sustain / release', 'מתעטף ADSR, יחידות בביטים'],
-  ['sustain_level', 'רמת ה-sustain (0..1)'],
-  ['cutoff', 'פילטר Lowpass בערך MIDI (ברירת מחדל תלויה בסינת׳)'],
-  ['res', 'רזוננס הפילטר 0..1'],
-  ['filter_env', 'כמה חצאי טון הפילטר "נפתח" בתחילת התו'],
-  ['filter_decay', 'כמה ביטים לוקח לפילטר לחזור (filter_env)'],
-  ['detune', 'מכפיל לדיטיון בין האוסילטורים (0 = ללא)'],
-  ['depth', 'עומק אפנון — רק ב-fm']
-];
-function fillTags(id, list) {
-  const box = $(id);
-  box.textContent = '';
-  list.forEach(n => {
-    const s = document.createElement('span');
-    s.className = 'chip'; s.textContent = n;
-    box.appendChild(s);
+function studioInit() {
+  $('#stPlay').addEventListener('click', studioStart);
+  $('#stStop').addEventListener('click', studioStop);
+  $('#btnStop').addEventListener('click', studioStop);
+  $('#stBpm').addEventListener('input', e => {
+    const v = +e.target.value;
+    if (v >= 30 && v <= 300) ST.bpm = v;
   });
-}
-function fillTable(id, rows) {
-  const t = $(id);
-  t.textContent = '';
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    r.forEach(txt => {
-      const td = document.createElement('td'); td.textContent = txt; tr.appendChild(td);
-    });
-    t.appendChild(tr);
+  $('#stSteps').addEventListener('change', e => {
+    ST.steps = +e.target.value;
+    ST.step = ST.step % ST.steps;
+    renderStudio();
   });
-}
-function renderReference() {
-  fillTable('#docTable', DOCS);
-  fillTable('#paramTable', PARAMS);
-  fillTags('#refSynths', Object.keys(SYNTHS).concat(Object.keys(SYNTH_ALIAS)));
-  fillTags('#refSamples', Object.keys(SAMPLES));
-  fillTags('#refFx', FX_NAMES);
-  fillTags('#refScales', Object.keys(SCALES));
-  fillTags('#refChords', Object.keys(CHORDS));
-}
-
-/* ============================================================
-   הכספת (שמירה מקומית)
-   ============================================================ */
-function loadPieces() {
-  try { return JSON.parse(localStorage.getItem('beatvault.pieces') || '[]') || []; }
-  catch (e) { return []; }
-}
-function savePieces(a) {
-  try { localStorage.setItem('beatvault.pieces', JSON.stringify(a)); }
-  catch (e) { log('לא הצלחתי לשמור (האחסון המקומי חסום או מלא)', 'err'); }
-}
-function renderVault() {
-  const box = $('#vaultList');
-  box.textContent = '';
-  const pieces = loadPieces();
-  if (!pieces.length) {
-    const d = document.createElement('div');
-    d.className = 'empty'; d.textContent = 'הכספת ריקה. תן שם ושמור את היצירה הראשונה שלך.';
-    box.appendChild(d);
-    return;
-  }
-  pieces.slice().reverse().forEach(pc => {
-    const card = document.createElement('div');
-    card.className = 'card item';
-    const h = document.createElement('h3'); h.textContent = pc.name;
-    const p = document.createElement('p');
-    p.textContent = new Date(pc.ts).toLocaleString('he-IL') + ' · ' + pc.code.split('\n').length + ' שורות';
-    const row = document.createElement('div'); row.className = 'row';
-    const b1 = document.createElement('button'); b1.className = 'btn sm'; b1.textContent = 'טען';
-    b1.addEventListener('click', () => { setCode(pc.code); showTab('editor'); log('נטענה "' + pc.name + '"', 'info'); });
-    const b2 = document.createElement('button'); b2.className = 'btn run sm'; b2.textContent = '▶ הרץ';
-    b2.addEventListener('click', () => { setCode(pc.code); showTab('editor'); runCode(); });
-    const b3 = document.createElement('button'); b3.className = 'btn stop sm'; b3.textContent = 'מחק';
-    b3.addEventListener('click', () => {
-      savePieces(loadPieces().filter(x => x.id !== pc.id));
-      renderVault();
-    });
-    row.appendChild(b1); row.appendChild(b2); row.appendChild(b3);
-    card.appendChild(h); card.appendChild(p); card.appendChild(row);
-    box.appendChild(card);
+  $('#stAddDrum').addEventListener('click', () => { addTrack('drum', 'bd_haus'); renderStudio(); });
+  $('#stAddSynth').addEventListener('click', () => { addTrack('synth', 'prophet'); renderStudio(); });
+  $('#stClear').addEventListener('click', () => {
+    ST.tracks.forEach(t => { t.cells = Array(MAXSTEPS).fill(false); t.grid = {}; });
+    renderStudio();
   });
+  $('#stExport').addEventListener('click', studioExport);
+  loadDemo();
+  renderStudio();
 }
-$('#vaultSave').addEventListener('click', () => {
-  const inp = $('#vaultName');
-  const name = inp.value.trim() || ('יצירה ' + new Date().toLocaleDateString('he-IL'));
-  const a = loadPieces();
-  a.push({ id: Date.now() + '-' + Math.floor(Math.random() * 1e6), name: name, code: editor.value, ts: Date.now() });
-  savePieces(a);
-  inp.value = '';
-  renderVault();
-  log('נשמר בכספת: ' + name, 'ok');
-});
-$('#vaultExport').addEventListener('click', () => {
-  const blob = new Blob([editor.value], { type: 'text/javascript' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'beatvault-' + Date.now() + '.js';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
-});
-$('#vaultImport').addEventListener('change', e => {
-  const f = e.target.files && e.target.files[0];
-  if (!f) return;
-  const r = new FileReader();
-  r.onload = () => { setCode(String(r.result)); showTab('editor'); log('נטען הקובץ ' + f.name, 'ok'); };
-  r.readAsText(f);
-  e.target.value = '';
-});
-
-/* ============================================================
-   אתחול
-   ============================================================ */
-renderExamples();
-renderReference();
-refreshLoops();
-(function init() {
-  let saved = null;
-  try { saved = localStorage.getItem('beatvault.current'); } catch (e) {}
-  editor.value = saved && saved.trim() ? saved : EXAMPLES[0].code;
-  updateGutter();
-  log('ברוך הבא ל-BeatVault. לחץ Run (או Ctrl+Enter) כדי להתחיל.', 'info');
-})();
-
-})();
-</script>
-</body>
-</html>
+studioInit();
