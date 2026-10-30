@@ -306,7 +306,6 @@ mySong();</textarea>
       
       const code = document.getElementById('codeEditor').value;
       try {
-        // העברת כל פונקציות ה-Synth פנימה
         const runAsync = new Function('synth', 'play', 'sleep', 'loop', `return (async () => { ${code} })()`);
         await runAsync(synth, play, sleep, loop);
         if (isPlaying) log("Finished execution.");
