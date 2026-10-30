@@ -1,75 +1,325 @@
-// === BeatVault Advanced Synth Engine (Sonic Pi Style) ===
-let audioCtx = null;
-let isPlaying = false;
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BeatVault</title>
+  <style>
+    :root {
+      --bg-color: #121214;
+      --card-bg: #1e1e24;
+      --accent-color: #ff4757;
+      --accent-hover: #ff6b81;
+      --text-color: #ffffff;
+      --text-muted: #a4b0be;
+      --code-bg: #0d0d0f;
+    }
 
-function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+
+    header {
+      background-color: #0d0d0f;
+      padding: 20px;
+      text-align: center;
+      border-bottom: 2px solid var(--accent-color);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2.2rem;
+      letter-spacing: 2px;
+      color: var(--accent-color);
+    }
+
+    .tabs-container {
+      display: flex;
+      justify-content: center;
+      background-color: #18181c;
+      border-bottom: 1px solid #2f3542;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 15px 25px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-color);
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      color: var(--accent-color);
+      border-bottom: 3px solid var(--accent-color);
+    }
+
+    .tab-content {
+      display: none;
+      padding: 30px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      margin-bottom: 20px;
+    }
+
+    textarea#codeEditor {
+      width: 100%;
+      height: 280px;
+      background-color: var(--code-bg);
+      color: #00ff88;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 1rem;
+      padding: 15px;
+      border: 1px solid #2f3542;
+      border-radius: 8px;
+      box-sizing: border-box;
+      resize: vertical;
+      direction: ltr;
+      text-align: left;
+    }
+
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .btn-run {
+      background-color: #2ed573;
+      color: #000;
+      border: none;
+      padding: 12px 25px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: 0.2s;
+    }
+
+    .btn-run:hover {
+      background-color: #26af5f;
+    }
+
+    .btn-stop {
+      background-color: var(--accent-color);
+      color: #fff;
+      border: none;
+      padding: 12px 25px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: 0.2s;
+    }
+
+    .btn-stop:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .log-box {
+      margin-top: 15px;
+      background: #000;
+      color: #a4b0be;
+      padding: 10px 15px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.9rem;
+      direction: ltr;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>BEATVAULT</h1>
+  </header>
+
+  <div class="tabs-container">
+    <button class="tab-btn active" onclick="openTab(event, 'beats')">🎵 ביטים</button>
+    <button class="tab-btn" onclick="openTab(event, 'livecoding')">💻 Live Coding (Sonic-JS)</button>
+    <button class="tab-btn" onclick="openTab(event, 'generator')">⚙️ מחולל & BPM</button>
+    <button class="tab-btn" onclick="openTab(event, 'about')">ℹ️ אודות</button>
+  </div>
+
+  <div id="beats" class="tab-content active">
+    <div class="card">
+      <h2>ספריית הביטים</h2>
+      <p>כאן יופיע נגן הביטים והטראקים שלך.</p>
+    </div>
+  </div>
+
+  <div id="livecoding" class="tab-content">
+    <div class="card">
+      <h2>Sonic-JS Live Coding Engine</h2>
+      <p>פונקציות זמינות בקוד: <code>synth('prophet', 'C4')</code>, <code>play('C4')</code>, <code>sleep(200)</code>, <code>loop(count, fn)</code>.</p>
+      
+<textarea id="codeEditor" spellcheck="false">async function mySong() {
+  const melody = ["C4", "E4", "G4", "B4", "C5"];
+  
+  await loop(10, async (i) => {
+    let note = melody[i % melody.length];
+    synth('prophet', note, { duration: 0.4, cutoff: 1200 });
+    await sleep(200);
+  });
 }
 
-const sleep = (ms) => new Promise(resolve => {
-  if (!isPlaying) return;
-  setTimeout(resolve, ms);
-});
+mySong();</textarea>
 
-// המרת תווים לתדרים
-function noteToFreq(note) {
-  const notes = {
-    "C3": 130.81, "D3": 146.83, "E3": 164.81, "F3": 174.61, "G3": 196.00, "A3": 220.00, "B3": 246.94,
-    "C4": 261.63, "D4": 293.66, "E4": 329.63, "F4": 349.23, "G4": 392.00, "A4": 440.00, "B4": 493.88,
-    "C5": 523.25, "D5": 587.33, "E5": 659.25, "F5": 698.46, "G5": 783.99, "A5": 880.00
-  };
-  return notes[note] || (typeof note === 'number' ? note : 440);
-}
+      <div class="controls">
+        <button class="btn-run" onclick="runCode()">▶ הנגן קוד (Run)</button>
+        <button class="btn-stop" onclick="stopAudio()">⏹ עצור (Stop)</button>
+      </div>
 
-// פונקציית סינת' מתקדמת (כמו ב-Sonic Pi)
-function synth(type, note, options = {}) {
-  if (!isPlaying || !audioCtx) return;
+      <div class="log-box" id="logOutput">Status: Ready.</div>
+    </div>
+  </div>
 
-  const freq = noteToFreq(note);
-  const duration = options.duration || 0.4;
-  const cutoff = options.cutoff || 1500; // פילטר תדרים לעידון הסאונד
+  <div id="generator" class="tab-content">
+    <div class="card">
+      <h2>הגדרות קצב ו-BPM</h2>
+      <p>כאן תוכל לשלוט על ה-BPM וליצור מקצבים.</p>
+    </div>
+  </div>
 
-  // יצירת אוסילטור (גל קול)
-  const osc = audioCtx.createOscillator();
-  const filter = audioCtx.createBiquadFilter();
-  const gain = audioCtx.createGain();
+  <div id="about" class="tab-content">
+    <div class="card">
+      <h2>על BeatVault</h2>
+      <p>פלטפורמה ליצירת ומעקב אחר ביטים, מקצבים ולייב-קודינג.</p>
+    </div>
+  </div>
 
-  // בחירת סוג כלי הנגינה (צורת הגל)
-  // 'sawtooth' = סאונד אלקטרוני שמן, 'square' = צליל שחיין/גיימינג, 'triangle' = עגול וחם
-  osc.type = type === 'prophet' ? 'sawtooth' : (type === 'beep' ? 'sine' : 'square');
-  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  <script>
+    function openTab(evt, tabId) {
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
 
-  // הגדרת פילטר סאונד (חותך את הצורמות ומביא נפח של כלי אמיתי)
-  filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(cutoff, audioCtx.currentTime);
+      document.getElementById(tabId).classList.add('active');
+      evt.currentTarget.classList.add('active');
+    }
 
-  // מעטפת סאונד חלקית (Envelope) למניעת קליקים ורעשים
-  const now = audioCtx.currentTime;
-  gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(0.25, now + 0.05); // Attack מהיר ונקי
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration); // Release טבעי
+    // === BeatVault Advanced Synth Engine ===
+    let audioCtx = null;
+    let isPlaying = false;
 
-  // חיבור השרשרת: אוסילטור -> פילטר -> עוצמה -> רמקולים
-  osc.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
 
-  osc.start(now);
-  osc.stop(now + duration);
-}
+    const sleep = (ms) => new Promise(resolve => {
+      if (!isPlaying) return;
+      setTimeout(resolve, ms);
+    });
 
-// תאימות לפקודה הקודמת ליתר ביטחון
-function play(note, duration = 0.3) {
-  synth('prophet', note, { duration });
-}
+    function noteToFreq(note) {
+      const notes = {
+        "C3": 130.81, "D3": 146.83, "E3": 164.81, "F3": 174.61, "G3": 196.00, "A3": 220.00, "B3": 246.94,
+        "C4": 261.63, "D4": 293.66, "E4": 329.63, "F4": 349.23, "G4": 392.00, "A4": 440.00, "B4": 493.88,
+        "C5": 523.25, "D5": 587.33, "E5": 659.25, "F5": 698.46, "G5": 783.99, "A5": 880.00
+      };
+      return notes[note] || (typeof note === 'number' ? note : 440);
+    }
 
-async function loop(times, callback) {
-  for (let i = 0; i < times && isPlaying; i++) {
-    await callback(i);
-  }
-}
+    function synth(type, note, options = {}) {
+      if (!isPlaying || !audioCtx) return;
+
+      const freq = noteToFreq(note);
+      const duration = options.duration || 0.4;
+      const cutoff = options.cutoff || 1500;
+
+      const osc = audioCtx.createOscillator();
+      const filter = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+
+      osc.type = type === 'prophet' ? 'sawtooth' : (type === 'beep' ? 'sine' : 'square');
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(cutoff, audioCtx.currentTime);
+
+      const now = audioCtx.currentTime;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.25, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(now);
+      osc.stop(now + duration);
+    }
+
+    function play(note, duration = 0.3) {
+      synth('prophet', note, { duration });
+    }
+
+    async function loop(times, callback) {
+      for (let i = 0; i < times && isPlaying; i++) {
+        await callback(i);
+      }
+    }
+
+    function log(msg) {
+      document.getElementById('logOutput').innerText = "Status: " + msg;
+    }
+
+    async function runCode() {
+      initAudio();
+      isPlaying = true;
+      log("Playing synth...");
+      
+      const code = document.getElementById('codeEditor').value;
+      try {
+        // העברת כל פונקציות ה-Synth פנימה
+        const runAsync = new Function('synth', 'play', 'sleep', 'loop', `return (async () => { ${code} })()`);
+        await runAsync(synth, play, sleep, loop);
+        if (isPlaying) log("Finished execution.");
+      } catch (err) {
+        log("Error: " + err.message);
+      }
+    }
+
+    function stopAudio() {
+      isPlaying = false;
+      log("Stopped.");
+    }
+  </script>
+
+</body>
+</html>
