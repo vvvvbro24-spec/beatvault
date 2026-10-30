@@ -37,7 +37,7 @@
       color: var(--accent-color);
     }
 
-    /* סרגל הטאבים */
+    /* סרגל טאבים */
     .tabs-container {
       display: flex;
       justify-content: center;
@@ -94,7 +94,7 @@
       margin-bottom: 20px;
     }
 
-    /* עורך הקוד בלייב */
+    /* עורך הקוד */
     textarea#codeEditor {
       width: 100%;
       height: 260px;
@@ -168,15 +168,15 @@
     <h1>BEATVAULT</h1>
   </header>
 
-  <!-- סרגל הטאבים המשודרג -->
+  <!-- סרגל הטאבים -->
   <div class="tabs-container">
     <button class="tab-btn active" onclick="openTab(event, 'beats')">🎵 ביטים</button>
-    <button class="tab-btn" onclick="openTab(event, 'livecoding')">💻 Live Coding</button>
+    <button class="tab-btn" onclick="openTab(event, 'livecoding')">💻 Live Coding (Sonic-JS)</button>
     <button class="tab-btn" onclick="openTab(event, 'generator')">⚙️ מחולל & BPM</button>
     <button class="tab-btn" onclick="openTab(event, 'about')">ℹ️ אודות</button>
   </div>
 
-  <!-- תוכן טאב 1: ביטים -->
+  <!-- טאב 1: ביטים -->
   <div id="beats" class="tab-content active">
     <div class="card">
       <h2>ספריית הביטים</h2>
@@ -184,13 +184,13 @@
     </div>
   </div>
 
-  <!-- תוכן טאב 2: לייב קודינג (Sonic Pi style) -->
+  <!-- טאב 2: עורך קוד בלייב (Sonic Pi ב-JS) -->
   <div id="livecoding" class="tab-content">
     <div class="card">
       <h2>Sonic-JS Live Coding Engine</h2>
-      <p>כתוב קוד JavaScript שמבצע סילסולים ומקצבים כמו ב-Sonic Pi! השתמש ב-<code>play("C4")</code>, <code>sleep(250)</code>, ו-<code>loop()</code>.</p>
+      <p>כאן כותבים קוד ב-JS שמיתרגם ישר למוזיקה בלייב בסגנון Sonic Pi! פקודות זמינות: <code>play("C4")</code>, <code>sleep(200)</code>, <code>loop()</code>.</p>
       
-<textarea id="codeEditor" spellcheck="false">// דוגמה לקוד מוזיקלי ב-JS (Sonic Pi Style)
+<textarea id="codeEditor" spellcheck="false">// כותבים קוד ב-JavaScript והוא מנגן סאונד בשיטת Sonic Pi!
 async function composition() {
   const scale = ["C4", "E4", "G4", "B4", "C5"];
   
@@ -212,7 +212,7 @@ composition();</textarea>
     </div>
   </div>
 
-  <!-- תוכן טאב 3: מחולל/BPM -->
+  <!-- טאב 3: מחולל/BPM -->
   <div id="generator" class="tab-content">
     <div class="card">
       <h2>הגדרות קצב ו-BPM</h2>
@@ -220,7 +220,7 @@ composition();</textarea>
     </div>
   </div>
 
-  <!-- תוכן טאב 4: אודות -->
+  <!-- טאב 4: אודות -->
   <div id="about" class="tab-content">
     <div class="card">
       <h2>על BeatVault</h2>
