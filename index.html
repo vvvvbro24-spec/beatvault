@@ -4,72 +4,75 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>BeatVault — Live Coding Music</title>
+<title>BeatVault — סטודיו ולייב קודינג</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
-  --bg:#0b0d14; --panel:#121624; --panel2:#171c2e; --line:#252b44;
-  --text:#e6e9f5; --muted:#8a92b2; --accent:#8b5cf6; --accent2:#22d3ee;
-  --good:#34d399; --bad:#f87171; --warn:#fbbf24;
-  --mono: ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --bg:#1a1814; --panel:#221f1a; --panel2:#2b2721; --line:#3a352c;
+  --text:#ece6d8; --muted:#9a917f; --accent:#e8643c; --accent2:#e3b341;
+  --good:#8fbf5a; --bad:#e5604d; --warn:#e3b341; --ink:#14120f;
+  --sans:"Heebo",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{
-  margin:0; color:var(--text); min-height:100vh; display:flex; flex-direction:column;
-  background:radial-gradient(1200px 600px at 80% -10%,#1b1442 0%,transparent 60%),var(--bg);
-  font-family:system-ui,-apple-system,"Segoe UI",Heebo,Arial,sans-serif;
-}
-header{
-  display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:12px 18px;
-  border-bottom:1px solid var(--line); background:rgba(18,22,36,.85);
-  backdrop-filter:blur(8px); position:sticky; top:0; z-index:5;
-}
+::selection{background:var(--accent); color:var(--ink)}
+body{margin:0; color:var(--text); background:var(--bg); min-height:100vh; display:flex; flex-direction:column; font-family:var(--sans); font-size:15px}
+*{scrollbar-width:thin; scrollbar-color:#4a443a transparent}
+
+header{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:10px 20px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:5}
 .brand{display:flex; align-items:baseline; gap:10px}
-.brand b{font-size:22px; letter-spacing:.5px; background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
-.brand small{color:var(--muted); font-size:12px; direction:ltr}
+.brand b{font-size:21px; font-weight:800; letter-spacing:-.3px; color:var(--text)}
+.brand b::before{content:""; display:inline-block; width:10px; height:10px; background:var(--accent); margin-left:8px; border-radius:1px}
+.brand small{color:var(--muted); font-size:12px}
 .spacer{flex:1}
 .vol{display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted)}
-.vol input{width:100px; accent-color:var(--accent)}
-.btn{
-  border:1px solid var(--line); background:var(--panel2); color:var(--text);
-  padding:8px 16px; border-radius:10px; font-size:14px; cursor:pointer;
-  font-family:inherit; transition:transform .06s, filter .15s, background .15s;
-}
-.btn:hover{filter:brightness(1.2)}
-.btn:active{transform:scale(.97)}
-.btn.run{background:linear-gradient(135deg,#7c3aed,#06b6d4); border-color:transparent; font-weight:700}
-.btn.run.on{box-shadow:0 0 0 2px #22d3ee88}
-.btn.stop{background:#3a1620; border-color:#5b2230; color:#ffb4bd}
+.vol input{width:100px}
+input[type=range]{accent-color:var(--accent)}
+
+.btn{border:1px solid var(--line); background:var(--panel2); color:var(--text); padding:7px 14px; border-radius:6px; font-size:14px; font-family:var(--sans); font-weight:500; cursor:pointer; transition:background .12s,border-color .12s}
+.btn:hover{background:#352f27; border-color:#4d463a}
+.btn:active{transform:translateY(1px)}
+.btn.run{background:var(--accent); border-color:var(--accent); color:var(--ink); font-weight:700}
+.btn.run:hover{background:#f0764f; border-color:#f0764f}
+.btn.run.on{background:var(--accent2); border-color:var(--accent2)}
+.btn.stop{background:transparent; border-color:#6b4036; color:#f0a090}
+.btn.stop:hover{background:#2e1d19}
 .btn.rec.on{background:#7f1d1d; border-color:#b91c1c; animation:pulse 1.2s infinite}
 @keyframes pulse{50%{opacity:.6}}
-.sm{padding:5px 12px; font-size:12px}
-.tabs{display:flex; gap:4px; padding:10px 18px 0; border-bottom:1px solid var(--line); overflow-x:auto}
-.tab{background:transparent; border:0; color:var(--muted); padding:10px 16px; cursor:pointer; font-size:14px; font-family:inherit; border-bottom:2px solid transparent; white-space:nowrap}
+.sm{padding:4px 10px; font-size:12.5px}
+
+.tabs{display:flex; gap:2px; padding:0 20px; border-bottom:1px solid var(--line); overflow-x:auto; background:var(--bg)}
+.tab{background:transparent; border:0; color:var(--muted); padding:12px 16px; cursor:pointer; font-size:14px; font-family:var(--sans); font-weight:500; border-bottom:2px solid transparent; white-space:nowrap; margin-bottom:-1px}
 .tab:hover{color:var(--text)}
-.tab.active{color:var(--text); border-bottom-color:var(--accent2)}
-main{flex:1; padding:14px 18px 24px; min-height:0}
+.tab.active{color:var(--text); border-bottom-color:var(--accent)}
+main{flex:1; padding:18px 20px 28px; min-height:0}
 .panel{display:none}
 .panel.active{display:block}
-.card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px}
-.card h4{margin:0 0 8px; font-size:12px; color:var(--muted); font-weight:600; letter-spacing:.4px}
-h2{font-size:18px; margin:18px 0 8px}
+
+.card{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px}
+.card h4{margin:0 0 10px; font:500 11px var(--mono); color:var(--muted); letter-spacing:.08em; text-transform:uppercase}
+h2{font-size:17px; font-weight:700; margin:20px 0 8px}
 h2:first-child{margin-top:0}
 .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px}
-.item h3{margin:0 0 4px; font-size:16px}
-.item p{margin:0 0 10px; color:var(--muted); font-size:13px; line-height:1.5}
-.item .row{display:flex; gap:8px; flex-wrap:wrap}
-.item code{font:11px var(--mono); color:#9aa3c7; direction:ltr; display:inline-block}
+.item h3{margin:0 0 4px; font-size:16px; font-weight:700}
+.item p{margin:0 0 12px; color:var(--muted); font-size:13px; line-height:1.55}
+.item .row{display:flex; gap:6px; flex-wrap:wrap}
+.item code{font:11.5px var(--mono); color:var(--accent2); direction:ltr; display:inline-block}
 table{width:100%; border-collapse:collapse; font-size:13px}
-td{padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top}
-td:first-child{font-family:var(--mono); color:#b7c2ff; direction:ltr; text-align:left; white-space:nowrap}
+td{padding:8px; border-bottom:1px solid var(--line); vertical-align:top}
+td:first-child{font-family:var(--mono); color:var(--accent2); direction:ltr; text-align:left; white-space:nowrap}
 .tags{display:flex; flex-wrap:wrap; gap:6px; direction:ltr}
-.chip{font:12px var(--mono); padding:3px 9px; border-radius:99px; background:#1d2340; border:1px solid #2c3560; color:#c9d0ff}
-.chip.live{border-color:#1d6b55; color:#8cf0cc; background:#0f2a25}
-.chip.pick{cursor:pointer; font-family:inherit; font-size:13px}
-.chip.sel{background:#2b2160; border-color:#6d5bd0; color:#fff}
+.chip{font:12px var(--mono); padding:3px 9px; border-radius:4px; background:var(--panel2); border:1px solid var(--line); color:var(--text)}
+.chip.live{border-color:#4f6a33; color:var(--good); background:#1f2616}
+.chip.pick{cursor:pointer; font-family:var(--sans); font-size:13px}
+.chip.pick:hover{border-color:#5a5244}
+.chip.sel{background:var(--accent); border-color:var(--accent); color:var(--ink); font-weight:700}
 .status{font-size:12px; color:var(--muted)}
-kbd{font:11px var(--mono); background:#1b2036; border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 6px; color:#cfd6ff}
-input[type=text],.num,.sel{background:#0e1120; border:1px solid var(--line); color:var(--text); border-radius:8px; padding:7px 10px; font-family:inherit; font-size:13px}
+kbd{font:11px var(--mono); background:var(--panel2); border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--text)}
+input[type=text],.num,.sel{background:var(--ink); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:7px 10px; font-family:var(--sans); font-size:13px}
+input[type=text]:focus,.num:focus,.sel:focus{outline:none; border-color:var(--accent)}
 input[type=text]{min-width:200px}
 .num{width:76px; font-family:var(--mono)}
 .sel{font:12px var(--mono); padding:5px 6px}
@@ -77,57 +80,57 @@ input[type=text]{min-width:200px}
 .bar label{font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px}
 .transport{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 .empty{color:var(--muted); font-size:14px; padding:20px 0}
-.hint{margin-top:8px; font-size:12px; color:var(--muted); text-align:center}
+.hint{margin-top:10px; font-size:12px; color:var(--muted); text-align:center}
 
-/* editor */
+/* עורך קוד */
 .editor-grid{direction:ltr; display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:14px; height:calc(100vh - 176px); min-height:520px}
 .colL{display:flex; flex-direction:column; gap:8px; min-height:0; direction:rtl}
 .colL .bar{margin:0}
-.editor-box{flex:1; display:flex; direction:ltr; background:#0e1120; border:1px solid var(--line); border-radius:12px; overflow:hidden; min-height:0}
-#gutter{width:48px; flex:none; padding:14px 8px 24px 0; text-align:right; color:#4b5375; background:#0b0e1a; border-right:1px solid var(--line); font:13.5px/1.6 var(--mono); overflow:hidden; white-space:pre; user-select:none}
-#editor{flex:1; min-width:0; resize:none; border:0; outline:0; background:transparent; color:#dfe4ff; font:13.5px/1.6 var(--mono); padding:14px 14px 24px; white-space:pre; overflow:auto; tab-size:2; caret-color:var(--accent2); direction:ltr; text-align:left}
+.editor-box{flex:1; display:flex; direction:ltr; background:var(--ink); border:1px solid var(--line); border-radius:8px; overflow:hidden; min-height:0}
+#gutter{width:48px; flex:none; padding:14px 8px 24px 0; text-align:right; color:#5b5446; background:#100f0c; border-right:1px solid var(--line); font:13.5px/1.6 var(--mono); overflow:hidden; white-space:pre; user-select:none}
+#editor{flex:1; min-width:0; resize:none; border:0; outline:0; background:transparent; color:#e6dfcf; font:13.5px/1.6 var(--mono); padding:14px 14px 24px; white-space:pre; overflow:auto; tab-size:2; caret-color:var(--accent); direction:ltr; text-align:left}
 .side{direction:rtl; display:flex; flex-direction:column; gap:12px; min-height:0}
-.scope{width:100%; height:120px; display:block; border-radius:8px; background:#0b0e1a}
+.scope{width:100%; height:120px; display:block; border-radius:6px; background:var(--ink)}
 #loops{display:flex; flex-wrap:wrap; gap:6px; min-height:26px; direction:ltr}
 .logcard{flex:1; display:flex; flex-direction:column; min-height:0}
 #log{flex:1; overflow:auto; font:12px/1.55 var(--mono); direction:ltr}
 .ln{padding:1px 0; unicode-bidi:plaintext; white-space:pre-wrap; word-break:break-word}
-.ln.info{color:#9aa3c7} .ln.ok{color:var(--good)} .ln.warn{color:var(--warn)} .ln.err{color:var(--bad)} .ln.out{color:#cfd6ff}
+.ln.info{color:#a89f8c} .ln.ok{color:var(--good)} .ln.warn{color:var(--warn)} .ln.err{color:var(--bad)} .ln.out{color:var(--text)}
 
-/* studio */
-.track{direction:ltr; display:flex; gap:12px; background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--tc); border-radius:12px; padding:10px; margin-bottom:10px; align-items:flex-start}
+/* סטודיו */
+.track{direction:ltr; display:flex; gap:12px; background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--tc); border-radius:6px; padding:10px; margin-bottom:10px; align-items:flex-start}
 .thead{width:240px; flex:none; display:flex; flex-direction:column; gap:7px}
 .trow{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
 .trow .sel{flex:1; min-width:0}
-.tdot{width:10px; height:10px; border-radius:50%; background:var(--tc); flex:none}
+.tdot{width:9px; height:9px; border-radius:1px; background:var(--tc); flex:none}
 .trow input[type=range]{flex:1; min-width:60px; accent-color:var(--tc)}
 .tog{padding:3px 9px; font:700 12px var(--mono)}
 .tog.on{background:#7f1d1d; border-color:#b91c1c}
-.tog.s.on{background:#854d0e; border-color:#ca8a04}
-.clip{display:flex; flex:1; min-width:0; overflow-x:auto; background:#0e1120; border:1px solid var(--line); border-radius:10px; padding:6px}
+.tog.s.on{background:#7a5a10; border-color:var(--accent2); color:#fff}
+.clip{display:flex; flex:1; min-width:0; overflow-x:auto; background:var(--ink); border:1px solid var(--line); border-radius:6px; padding:6px}
 .keys{display:grid; grid-auto-rows:18px; gap:1px; width:40px; flex:none; margin-right:6px}
-.key{font:10px/18px var(--mono); color:#6b7399; text-align:right; padding-right:4px}
+.key{font:10px/18px var(--mono); color:#6f6759; text-align:right; padding-right:4px}
 .key.rt{color:var(--tc); font-weight:700}
 .area{position:relative; flex:1; min-width:0}
 .cells{display:grid; gap:1px}
 .cells.drum{grid-auto-rows:46px}
 .cells.syn{grid-auto-rows:18px}
-.cell{background:#171c2e; border-radius:3px; cursor:pointer; touch-action:none}
-.cell.alt{background:#1d2339}
-.cell:hover{filter:brightness(1.5)}
-.cell.on{background:var(--tc); box-shadow:0 0 8px var(--tc)}
-.ph{position:absolute; top:0; bottom:0; display:none; background:rgba(255,255,255,.12); border-left:1px solid rgba(255,255,255,.55); pointer-events:none}
+.cell{background:#23201a; border-radius:2px; cursor:pointer; touch-action:none}
+.cell.alt{background:#2c2820}
+.cell:hover{background:#3d372c}
+.cell.on{background:var(--tc)}
+.ph{position:absolute; top:0; bottom:0; display:none; background:rgba(255,255,255,.07); border-left:1px solid rgba(255,255,255,.4); pointer-events:none}
 
-/* lab */
+/* מעבדה */
 .lab{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; margin-top:12px}
 .ctl{display:grid; grid-template-columns:96px 1fr 62px; gap:8px; align-items:center; margin:7px 0; font-size:12px; color:var(--muted)}
-.ctl input[type=range]{width:100%; accent-color:var(--accent2)}
+.ctl input[type=range]{width:100%}
 .ctl output{font:11px var(--mono); color:var(--text); text-align:left; direction:ltr}
 .piano{position:relative; height:130px; direction:ltr; display:flex; user-select:none; touch-action:none; margin-top:10px}
-.wk{flex:1; background:#e8ebf7; border:1px solid #0b0e1a; border-radius:0 0 6px 6px; cursor:pointer}
-.wk.down{background:#a5b4fc}
-.bk{position:absolute; top:0; width:5%; height:62%; background:#12162a; border:1px solid #000; border-radius:0 0 4px 4px; z-index:2; cursor:pointer; transform:translateX(-50%)}
-.bk.down{background:#6d5bd0}
+.wk{flex:1; background:#e9e2d0; border:1px solid #14120f; border-radius:0 0 4px 4px; cursor:pointer}
+.wk.down{background:var(--accent2)}
+.bk{position:absolute; top:0; width:5%; height:62%; background:#1b1915; border:1px solid #000; border-radius:0 0 3px 3px; z-index:2; cursor:pointer; transform:translateX(-50%)}
+.bk.down{background:var(--accent)}
 
 @media (max-width:900px){
   .editor-grid{grid-template-columns:1fr; height:auto}
@@ -141,23 +144,23 @@ input[type=text]{min-width:200px}
 <body>
 
 <header>
-  <div class="brand"><b>◈ BeatVault</b><small>Music Studio + Live Coding</small></div>
+  <div class="brand"><b>BeatVault</b><small>סטודיו ולייב קודינג</small></div>
   <div class="spacer"></div>
-  <label class="vol">🔊 <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8"></label>
-  <button id="btnRec" class="btn rec" title="הקלטת הפלט לקובץ">⏺ הקלטה</button>
-  <button id="btnStop" class="btn stop">■ עצור הכל</button>
-  <button id="btnRun" class="btn run">▶ Run קוד</button>
+  <label class="vol">עוצמה <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8"></label>
+  <button id="btnRec" class="btn rec" title="הקלטת הפלט לקובץ">הקלטה</button>
+  <button id="btnStop" class="btn stop">עצור הכל</button>
+  <button id="btnRun" class="btn run">Run קוד</button>
 </header>
 
 <nav class="tabs">
-  <button class="tab active" data-tab="beats">🥁 ביטים</button>
-  <button class="tab" data-tab="melody">🎹 מלודיה</button>
-  <button class="tab" data-tab="lab">🎛 מעבדת סאונד</button>
-  <button class="tab" data-tab="library">🔊 ספריית סאונדים</button>
-  <button class="tab" data-tab="songs">🎵 שירים</button>
-  <button class="tab" data-tab="code">⌨ קוד</button>
-  <button class="tab" data-tab="ref">📖 מדריך</button>
-  <button class="tab" data-tab="vault">💾 הכספת</button>
+  <button class="tab active" data-tab="beats">ביטים</button>
+  <button class="tab" data-tab="melody">מלודיה</button>
+  <button class="tab" data-tab="lab">מעבדת סאונד</button>
+  <button class="tab" data-tab="library">ספריית סאונדים</button>
+  <button class="tab" data-tab="songs">שירים</button>
+  <button class="tab" data-tab="code">קוד</button>
+  <button class="tab" data-tab="ref">מדריך</button>
+  <button class="tab" data-tab="vault">הכספת</button>
 </nav>
 
 <main>
@@ -168,12 +171,12 @@ input[type=text]{min-width:200px}
       <span class="spacer"></span>
       <select class="sel" id="beatStyle"></select>
       <button class="btn sm" id="beatLoad">טען סגנון</button>
-      <button class="btn sm" id="beatRand">🎲 ביט אקראי</button>
+      <button class="btn sm" id="beatRand">ביט אקראי</button>
       <button class="btn sm" id="addDrum">+ שורת תוף</button>
       <button class="btn sm" id="beatClear">נקה</button>
     </div>
     <div id="beatTracks"></div>
-    <div class="hint">לחץ או גרור על התיבות כדי להדליק צלילים. כל עמודה = שמינית-שמינית (1/16) בתיבה.</div>
+    <div class="hint">לחץ או גרור על התיבות כדי להדליק צלילים. כל תיבה היא 1/16 מהמקצב.</div>
   </section>
 
   <!-- מלודיה -->
@@ -186,7 +189,7 @@ input[type=text]{min-width:200px}
       <button class="btn sm" id="melClear">נקה מלודיות</button>
     </div>
     <div id="melTracks"></div>
-    <div class="hint">כל שורה = תו בסולם שבחרת. אפשר לשנות סולם, טוניקה, אוקטבה, אורך תו ואפקט לכל ערוץ.</div>
+    <div class="hint">כל שורה היא תו בסולם שבחרת. אפשר לשנות סולם, טוניקה, אוקטבה, אורך תו ואפקט לכל ערוץ.</div>
   </section>
 
   <!-- מעבדת סאונד -->
@@ -195,8 +198,8 @@ input[type=text]{min-width:200px}
       <div class="bar">
         <input type="text" id="labName" placeholder="שם הסאונד שלי...">
         <select class="sel" id="labLoad"></select>
-        <button class="btn sm" id="labRand">🎲 סאונד אקראי</button>
-        <button class="btn sm" id="labChord">🎹 נגן אקורד</button>
+        <button class="btn sm" id="labRand">סאונד אקראי</button>
+        <button class="btn sm" id="labChord">נגן אקורד</button>
         <label>אוקטבה <select class="sel" id="labOct"><option value="-1">נמוך</option><option value="0" selected>רגיל</option><option value="1">גבוה</option></select></label>
         <button class="btn run sm" id="labSave">שמור לספרייה</button>
       </div>
@@ -219,7 +222,7 @@ input[type=text]{min-width:200px}
   <!-- שירים -->
   <section id="tab-songs" class="panel">
     <div class="card" style="margin-bottom:12px">
-      <h2>🎲 מחולל שירים מקוריים</h2>
+      <h2>מחולל שירים מקוריים</h2>
       <div class="bar" style="margin:0">
         <select class="sel" id="genMood"></select>
         <button class="btn run" id="genBtn">צור שיר חדש</button>
@@ -1235,7 +1238,7 @@ function runCode() {
     Array.from(loops.entries()).forEach(([n, L]) => {
       if (!seen.has(n)) { killLoop(L); log('live_loop "' + n + '" הוסרה מהקוד ונעצרה', 'info'); }
     });
-    log('הורץ ✓ · ' + loops.size + ' לולאות פעילות', 'ok');
+    log('הורץ בהצלחה · ' + loops.size + ' לולאות פעילות', 'ok');
   }
   seen = null;
 }
@@ -1299,7 +1302,7 @@ const ST = { tracks: [], playing: false, bpm: 100, steps: 16, step: 0, nextT: 0,
 const MAXSTEPS = 64;
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const midiName = m => NOTE_NAMES[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
-const TRACK_COLORS = ['#8b5cf6','#22d3ee','#f472b6','#34d399','#fbbf24','#fb7185','#60a5fa','#a3e635'];
+const TRACK_COLORS = ['#e8643c','#e3b341','#8fbf5a','#5f9ec9','#c9739a','#9a8be0','#d98c5f','#6fbfa8'];
 const r2 = x => Math.round(x * 100) / 100;
 const FX_CHOICES = [['none', 'בלי אפקט'], ['reverb', 'ריוורב'], ['echo', 'אקו'], ['distortion', 'דיסטורשן'], ['wobble', 'ווב'], ['slicer', 'סלייסר']];
 const LEN_CHOICES = [[1, 'תו: 1/16'], [2, 'תו: 2'], [3, 'תו: 3'], [4, 'תו: 4 (1 ביט)'], [8, 'תו: 8'], [16, 'תו: תיבה']];
@@ -1444,7 +1447,7 @@ function renderTrack(t) {
   const r1 = mk('div', 'trow');
   r1.appendChild(mk('span', 'tdot'));
   r1.appendChild(instSelect(t.kind, t.inst, v => { t.inst = v; preview(t); touch(); }));
-  const dice = mk('button', 'btn sm', '🎲'); dice.title = 'תבנית אקראית לערוץ';
+  const dice = mk('button', 'btn sm', 'אקראי'); dice.title = 'תבנית אקראית לערוץ';
   dice.addEventListener('click', () => { if (t.kind === 'drum') randDrum(t); else randMelody(t); touch(); renderStudio(); });
   const del = mk('button', 'btn sm', '✕'); del.title = 'מחק ערוץ';
   del.addEventListener('click', () => { dropFx(t); ST.tracks = ST.tracks.filter(x => x !== t); touch(); renderStudio(); });
@@ -2089,17 +2092,17 @@ function renderLibrary() {
     const p = mk('p'); p.appendChild(mk('code', null, it.key)); p.appendChild(document.createTextNode('  ·  ' + CATS[it.meta.cat]));
     card.appendChild(p);
     const row = mk('div', 'row');
-    const b1 = mk('button', 'btn run sm', '▶ השמע');
+    const b1 = mk('button', 'btn run sm', 'השמע');
     b1.addEventListener('click', () => previewSound(it.kind, it.key));
     row.appendChild(b1);
     if (it.kind === 'synth') {
-      const b2 = mk('button', 'btn sm', '🎛 למעבדה');
+      const b2 = mk('button', 'btn sm', 'למעבדה');
       b2.addEventListener('click', () => { LAB = patchToLab(SYNTHS[it.key]); labRefresh(); $('#labName').value = it.meta.label + ' (עותק)'; showTab('lab'); });
       const b3 = mk('button', 'btn sm', '+ למלודיה');
       b3.addEventListener('click', () => { addSynthTrack(it.key); showTab('melody'); });
       row.appendChild(b2); row.appendChild(b3);
       if (CUSTOM[it.key]) {
-        const b4 = mk('button', 'btn stop sm', '🗑');
+        const b4 = mk('button', 'btn stop sm', 'מחק');
         b4.addEventListener('click', () => { delete CUSTOM[it.key]; delete SYNTHS[it.key]; delete SMETA[it.key]; saveCustom(); refreshSoundLists(); renderLibrary(); });
         row.appendChild(b4);
       }
@@ -2275,7 +2278,7 @@ function renderVault() {
     const row = mk('div', 'row');
     const b1 = mk('button', 'btn sm', 'טען');
     b1.addEventListener('click', () => { if (pc.studio) setProject(pc.studio); setCode(pc.code); log('נטען: ' + pc.name, 'info'); showTab(pc.studio ? 'beats' : 'code'); });
-    const b2 = mk('button', 'btn run sm', '▶ נגן סטודיו');
+    const b2 = mk('button', 'btn run sm', 'נגן סטודיו');
     b2.addEventListener('click', () => { if (pc.studio) { setProject(pc.studio); setCode(pc.code); showTab('beats'); studioStop(); studioStart(); } });
     const b3 = mk('button', 'btn stop sm', 'מחק');
     b3.addEventListener('click', () => { savePieces(loadPieces().filter(x => x.id !== pc.id)); renderVault(); });
@@ -2341,7 +2344,7 @@ $('#vol').addEventListener('input', e => {
 function refreshLoops() {
   const box = $('#loops'); box.textContent = '';
   if (loops.size === 0) box.appendChild(mk('span', 'status', '—'));
-  else loops.forEach((L, name) => box.appendChild(mk('span', 'chip live', '● ' + name)));
+  else loops.forEach((L, name) => box.appendChild(mk('span', 'chip live', name)));
   $('#statusTxt').textContent = loops.size ? '(' + loops.size + ')' : '';
 }
 setInterval(refreshLoops, 250);
@@ -2355,20 +2358,18 @@ function drawOne(cv) {
   if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
   sctx.clearRect(0, 0, w, h);
   if (!A.analyser) {
-    sctx.strokeStyle = 'rgba(138,146,178,.4)'; sctx.lineWidth = d;
+    sctx.strokeStyle = 'rgba(154,145,127,.4)'; sctx.lineWidth = d;
     sctx.beginPath(); sctx.moveTo(0, h / 2); sctx.lineTo(w, h / 2); sctx.stroke();
     return;
   }
   const bars = 64, bw = w / bars;
-  const grad = sctx.createLinearGradient(0, h, 0, 0);
-  grad.addColorStop(0, 'rgba(139,92,246,.55)'); grad.addColorStop(1, 'rgba(34,211,238,.55)');
-  sctx.fillStyle = grad;
+  sctx.fillStyle = 'rgba(232,100,60,.5)';
   for (let i = 0; i < bars; i++) {
     const idx = Math.floor(Math.pow(i / bars, 1.8) * (fData.length * 0.5));
     const bh = (fData[idx] / 255) * h * 0.9;
     sctx.fillRect(i * bw + 1, h - bh, Math.max(1, bw - 2), bh);
   }
-  sctx.strokeStyle = '#e6e9f5'; sctx.lineWidth = 1.5 * d;
+  sctx.strokeStyle = '#ece6d8'; sctx.lineWidth = 1.5 * d;
   sctx.beginPath();
   for (let i = 0; i < tData.length; i += 2) {
     const x = (i / (tData.length - 1)) * w, y = (tData[i] / 255) * h;
@@ -2404,11 +2405,11 @@ $('#btnRec').addEventListener('click', () => {
     a.href = url; a.download = 'beatvault-' + Date.now() + '.webm';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
-    rec = null; btn.classList.remove('on'); btn.textContent = '⏺ הקלטה';
+    rec = null; btn.classList.remove('on'); btn.textContent = 'הקלטה';
     log('ההקלטה נשמרה', 'ok');
   };
   rec.start();
-  btn.classList.add('on'); btn.textContent = '■ סיים הקלטה';
+  btn.classList.add('on'); btn.textContent = 'סיים הקלטה';
   log('מקליט...', 'info');
 });
 
@@ -2416,8 +2417,8 @@ $('#btnRec').addEventListener('click', () => {
 function transportInit() {
   $$('.transport').forEach(el => {
     el.innerHTML =
-      '<button class="btn run stPlay">▶ נגן</button>' +
-      '<button class="btn stop stStop">■ עצור</button>' +
+      '<button class="btn run stPlay">נגן</button>' +
+      '<button class="btn stop stStop">עצור</button>' +
       '<label>BPM <input type="number" class="num stBpm" min="40" max="240" value="100"></label>' +
       '<label>אורך <select class="sel stSteps"><option value="16">16 (תיבה)</option><option value="32">32 (2 תיבות)</option><option value="64">64 (4 תיבות)</option></select></label>' +
       '<button class="btn sm stExport">ייצא לקוד ←</button>';
@@ -2457,7 +2458,7 @@ function studioInit() {
     const row = mk('div', 'row');
     const b1 = mk('button', 'btn sm', 'טען לסטודיו');
     b1.addEventListener('click', () => { studioStop(); loadSong(sp); showTab('melody'); });
-    const b2 = mk('button', 'btn run sm', '▶ טען ונגן');
+    const b2 = mk('button', 'btn run sm', 'טען ונגן');
     b2.addEventListener('click', () => { studioStop(); loadSong(sp); showTab('melody'); studioStart(); });
     row.appendChild(b1); row.appendChild(b2);
     card.appendChild(row); sl.appendChild(card);
@@ -2499,7 +2500,7 @@ renderReference();
   updateGutter();
   if (proj && proj.tracks && proj.tracks.length) setProject(proj);
   else loadSong(SONGS[1]);
-  log('ברוך הבא ל-BeatVault. לחץ ▶ נגן בטאב ביטים או מלודיה.', 'info');
+  log('ברוך הבא ל-BeatVault. לחץ "נגן" בטאב ביטים או מלודיה.', 'info');
 })();
 
 })();
