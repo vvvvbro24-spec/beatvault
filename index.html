@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BEATS — Step Sequencer & Code Studio</title>
+<title>BEATS — Step Sequencer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0c0c0e;
@@ -21,7 +21,7 @@
   }
   * { box-sizing: border-box; margin: 0; }
   body { background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; min-height: 100vh; }
-  button, select, input, textarea { font: inherit; color: inherit; }
+  button, select, input { font: inherit; color: inherit; }
 
   .app { max-width: 1180px; margin: 0 auto; padding: 28px 20px 48px; display: flex; flex-direction: column; gap: 18px; }
 
@@ -53,33 +53,11 @@
 
   input[type=range] { -webkit-appearance: none; appearance: none; height: 3px; border-radius: 3px; background: var(--line); cursor: pointer; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--text); border: 0; }
+  input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--text); border: 0; }
 
-  /* ---------- code studio box (replaces scope) ---------- */
-  .code-studio-panel {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px;
-    display: grid; grid-template-columns: 1fr 280px; gap: 14px; min-height: 140px;
-  }
-  .code-editor {
-    background: var(--cell); border: 1px solid var(--line); border-radius: 8px; padding: 10px;
-    font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.5; color: #a9b7c6;
-    resize: none; outline: none; width: 100%; height: 112px; direction: ltr; text-align: left;
-  }
-  .code-editor:focus { border-color: var(--accent); }
-  .code-sidebar { display: flex; flex-direction: column; gap: 8px; justify-content: space-between; }
-  .code-btns { display: flex; gap: 8px; }
-  .code-btn {
-    flex: 1; background: var(--cell); border: 1px solid var(--line); border-radius: 6px;
-    padding: 6px 10px; cursor: pointer; font-size: 12px; font-weight: 600; text-align: center; transition: border-color .12s;
-  }
-  .code-btn.run { background: var(--accent); color: var(--bg); border-color: var(--accent); }
-  .code-btn:hover { border-color: var(--mute); }
-  .console-box {
-    background: var(--cell); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px;
-    height: 65px; overflow-y: auto; font-family: 'Fira Code', monospace; font-size: 11px; color: var(--mute); direction: ltr; text-align: left;
-  }
-  .console-log { margin-bottom: 2px; }
-  .console-log.success { color: #4fcfa6; }
-  .console-log.error { color: var(--accent); }
+  /* ---------- scope ---------- */
+  .scope { height: 110px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .scope canvas { width: 100%; height: 100%; display: block; }
 
   /* ---------- grid ---------- */
   #grid { overflow-x: auto; padding-bottom: 4px; }
@@ -137,26 +115,7 @@
     </div>
   </header>
 
-  <!-- Code Studio Panel (Replaces Scope) -->
-  <section class="code-studio-panel">
-    <textarea id="sonic-code" class="code-editor" spellcheck="false">use_bpm 140
-use_synth :dsaw
-sample :bd_haus
-play :C2
-sleep 0.5
-sample :snare
-play :D3
-sleep 0.5</textarea>
-    <div class="code-sidebar">
-      <div class="code-btns">
-        <button id="run-code-btn" class="code-btn run">▶ Run</button>
-        <button id="stop-code-btn" class="code-btn">■ Stop</button>
-      </div>
-      <div id="code-console" class="console-box">
-        <div class="console-log success">Sonic Pi Engine Ready.</div>
-      </div>
-    </div>
-  </section>
+  <section class="scope"><canvas id="scope"></canvas></section>
 
   <main id="grid"></main>
 
@@ -167,7 +126,7 @@ sleep 0.5</textarea>
       <button id="rec" class="btn rec">Rec</button>
     </div>
     <div>
-      <kbd>Space</kbd> play   <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd><kbd>K</kbd> live pads  
+      <kbd>Space</kbd> play &nbsp; <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd><kbd>K</kbd> live pads &nbsp;
       Click cycles velocity · drag to paint · right-click / scroll changes the note
     </div>
   </footer>
@@ -178,6 +137,9 @@ sleep 0.5</textarea>
 (() => {
 'use strict';
 
+/* =====================================================================
+   CONSTANTS
+===================================================================== */
 const $ = (s, r = document) => r.querySelector(s);
 const STEPS = 16;
 const VEL = [0, 0.5, 0.8, 1];
@@ -191,6 +153,9 @@ const SCALES = {
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 const STORE_KEY = 'beats-seq-v2';
 
+/* =====================================================================
+   AUDIO ENGINE
+===================================================================== */
 let ctx, masterGain, comp, analyser, recDest, reverbIn, noiseBuf;
 const trackOut = [];
 const curveCache = {};
@@ -220,10 +185,12 @@ function initAudio() {
   analyser.connect(ctx.destination);
   comp.connect(recDest);
 
+  // white-noise buffer shared by every noise-based voice
   noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
   const nd = noiseBuf.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
 
+  // reverb bus
   const conv = ctx.createConvolver();
   conv.buffer = makeImpulse(1.9, 3.1);
   const rvHP = filt('highpass', 280);
@@ -231,6 +198,7 @@ function initAudio() {
   reverbIn = gain(1);
   reverbIn.connect(rvHP); rvHP.connect(conv); conv.connect(rvOut); rvOut.connect(masterGain);
 
+  // per-track strip: fader -> master, post-fader send -> reverb
   TRACKS.forEach((t, i) => {
     const g = gain(state.vol[i]);
     const send = gain(t.reverb);
@@ -251,6 +219,7 @@ function makeImpulse(seconds, decay) {
   return buf;
 }
 
+/* ---------- small node helpers ---------- */
 const gain = (v = 1) => { const g = ctx.createGain(); g.gain.value = v; return g; };
 const filt = (type, f, q = 1) => { const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q; return n; };
 function osc(type, f, t, dur) {
@@ -278,6 +247,9 @@ function softClip(k) {
 }
 function shaper(k) { const s = ctx.createWaveShaper(); s.curve = softClip(k); s.oversample = '2x'; return s; }
 
+/* =====================================================================
+   VOICES  — each takes (time, velocity, outputNode[, frequency])
+===================================================================== */
 function kick(t, v, out) {
   const o = osc('sine', 170, t, 0.8);
   o.frequency.exponentialRampToValueAtTime(52, t + 0.1);
@@ -366,6 +338,9 @@ function keys(t, v, out, f) {
   lp.connect(g); g.connect(out);
 }
 
+/* =====================================================================
+   TRACK DEFINITIONS
+===================================================================== */
 const TRACKS = [
   { id: 'kick',  name: 'Kick',     type: 'drum', color: '#ff5a36', key: 'a', gain: 0.95, reverb: 0,    voice: kick },
   { id: 'snare', name: 'Snare',    type: 'drum', color: '#ff8a3d', key: 's', gain: 0.8,  reverb: 0.18, voice: snare },
@@ -377,6 +352,9 @@ const TRACKS = [
   { id: 'keys',  name: 'Keys',     type: 'note', color: '#8d7dff', key: 'k', gain: 0.6,  reverb: 0.35, voice: keys, defDeg: 4 },
 ];
 
+/* =====================================================================
+   STATE + PRESETS
+===================================================================== */
 const state = {
   bpm: 120, swing: 0, root: 0, scale: 'Minor', playing: false,
   pattern: TRACKS.map(t => Array(STEPS).fill(t.type === 'drum' ? 0 : -1)),
@@ -384,6 +362,7 @@ const state = {
   mute: TRACKS.map(() => false),
 };
 
+// drums: . rest  - soft  x normal  X accent   |   notes: . rest, 0-d = scale degree (hex)
 const PRESETS = {
   'Trap': { bpm: 140, swing: 0, root: 6, scale: 'Minor', p: {
     kick:  'X..-..x.....X...', snare: '........X.......', clap: '........x.......',
@@ -404,6 +383,9 @@ const PRESETS = {
   'Empty': { bpm: 120, swing: 0, root: 0, scale: 'Minor', p: {} },
 };
 
+/* =====================================================================
+   SCHEDULER (look-ahead, driven by a worker timer so background tabs keep time)
+===================================================================== */
 const stepDur = () => 60 / state.bpm / 4;
 let step = 0, nextTime = 0;
 const queue = [];
@@ -473,8 +455,11 @@ function preview(i, val) {
   trigger(i, ctx.currentTime + 0.01, val, 1);
 }
 
+/* =====================================================================
+   UI — GRID
+===================================================================== */
 const grid = $('#grid');
-const cells = [];
+const cells = [];     // cells[track][step]
 const heads = [];
 let playheadStep = -1;
 
@@ -556,6 +541,7 @@ function bump(i, s, dir) {
   setCell(i, s, (cur + dir + 14) % 14, true);
 }
 
+/* ---------- pointer interaction ---------- */
 let painting = null;
 
 grid.addEventListener('pointerdown', e => {
@@ -587,86 +573,6 @@ grid.addEventListener('wheel', e => {
   if (TRACKS[i].type !== 'note' || state.pattern[i][+c.dataset.s] < 0) return;
   e.preventDefault(); bump(i, +c.dataset.s, e.deltaY < 0 ? 1 : -1);
 }, { passive: false });
-
-/* =====================================================================
-   SONIC PI INTERPRETER INTEGRATION
-===================================================================== */
-class SonicPiInterpreter {
-  constructor() {
-    this.bpm = 120;
-    this.timeouts = [];
-  }
-
-  log(msg, type = '') {
-    const box = $('#code-console');
-    const time = new Date().toTimeString().split(' ')[0];
-    const el = document.createElement('div');
-    el.className = `console-log ${type}`;
-    el.textContent = `[${time}] ${msg}`;
-    box.appendChild(el);
-    box.scrollTop = box.scrollHeight;
-  }
-
-  stop() {
-    this.timeouts.forEach(clearTimeout);
-    this.timeouts = [];
-    this.log('Stopped.');
-  }
-
-  run(code) {
-    initAudio();
-    ctx.resume();
-    this.stop();
-    this.log('Running code...', 'success');
-
-    const lines = code.split('\n');
-    let currentTime = ctx.currentTime;
-    let bpm = state.bpm;
-
-    for (let i = 0; i < lines.length; i++) {
-      let line = lines[i].trim();
-      if (!line || line.startsWith('#')) continue;
-
-      try {
-        if (line.startsWith('use_bpm')) {
-          bpm = parseFloat(line.split(/\s+/)[1]) || 120;
-        } else if (line.startsWith('play')) {
-          const arg = line.split(/\s+/)[1].replace(':', '');
-          const t = currentTime;
-          const st = setTimeout(() => {
-            keys(t, 0.8, masterGain, mtof(this.parseNote(arg)));
-          }, (t - ctx.currentTime) * 1000);
-          this.timeouts.push(st);
-        } else if (line.startsWith('sample')) {
-          const sName = line.split(/\s+/)[1].replace(':', '');
-          const t = currentTime;
-          const st = setTimeout(() => {
-            if (sName.includes('snare')) snare(t, 0.8, masterGain);
-            else kick(t, 0.9, masterGain);
-          }, (t - ctx.currentTime) * 1000);
-          this.timeouts.push(st);
-        } else if (line.startsWith('sleep')) {
-          const beats = parseFloat(line.split(/\s+/)[1]) || 1;
-          currentTime += beats * (60 / bpm);
-        }
-      } catch (err) {
-        this.log(`Error line ${i + 1}`, 'error');
-      }
-    }
-  }
-
-  parseNote(noteStr) {
-    if (!isNaN(noteStr)) return parseFloat(noteStr);
-    const map = { 'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 'F': 5, 'F#': 6, 'G': 7, 'G#': 8, 'A': 9, 'A#': 10, 'B': 11 };
-    const match = noteStr.toUpperCase().match(/^([A-G]#?)(-?\d+)$/);
-    if (!match) return 60;
-    return map[match[1]] + (parseInt(match[2], 10) + 1) * 12;
-  }
-}
-
-const piEngine = new SonicPiInterpreter();
-$('#run-code-btn').onclick = () => piEngine.run($('#sonic-code').value);
-$('#stop-code-btn').onclick = () => piEngine.stop();
 
 /* =====================================================================
    UI — CONTROLS
@@ -738,11 +644,12 @@ $('#rand').onclick = () => {
   repaintAll(); save();
 };
 
+/* ---------- live pads + shortcuts ---------- */
 const keyMap = Object.fromEntries(TRACKS.map((t, i) => [t.key, i]));
 document.addEventListener('keydown', e => {
   if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
   const tag = e.target.tagName;
-  if (tag === 'SELECT' || tag === 'TEXTAREA' || (tag === 'INPUT' && e.target.type === 'number')) return;
+  if (tag === 'SELECT' || (tag === 'INPUT' && e.target.type === 'number')) return;
   if (e.code === 'Space') { e.preventDefault(); toggle(); return; }
   const i = keyMap[e.key.toLowerCase()];
   if (i === undefined) return;
@@ -752,6 +659,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { if (e.code === 'Space') e.preventDefault(); });
 
+/* ---------- recording ---------- */
 let recorder = null, chunks = [];
 $('#rec').onclick = () => {
   const btn = $('#rec');
@@ -759,7 +667,7 @@ $('#rec').onclick = () => {
   if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
   const types = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'];
   const mime = window.MediaRecorder && types.find(t => MediaRecorder.isTypeSupported(t));
-  if (!mime) { alert('Recording not supported.'); return; }
+  if (!mime) { alert('Recording is not supported in this browser.'); return; }
   chunks = [];
   recorder = new MediaRecorder(recDest.stream, { mimeType: mime });
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
@@ -776,6 +684,9 @@ $('#rec').onclick = () => {
   btn.classList.add('on'); btn.textContent = 'Stop rec';
 };
 
+/* =====================================================================
+   PERSISTENCE
+===================================================================== */
 let saveTimer;
 function save() {
   clearTimeout(saveTimer);
@@ -795,16 +706,55 @@ function restore() {
   } catch (_) { return false; }
 }
 
+/* =====================================================================
+   VISUALS
+===================================================================== */
+const cv = $('#scope'), g2 = cv.getContext('2d');
+const BARS = 72;
+const smooth = new Float32Array(BARS);
+let freqData;
+
+function fit() {
+  const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d);
+}
+window.addEventListener('resize', fit);
+
+function drawScope() {
+  const w = cv.width, h = cv.height;
+  g2.clearRect(0, 0, w, h);
+  if (analyser) {
+    if (!freqData) freqData = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(freqData);
+  }
+  const gap = 3 * (window.devicePixelRatio || 1);
+  const bw = (w - gap * (BARS - 1)) / BARS;
+  const top = freqData ? Math.floor(freqData.length * 0.6) : 0;
+  for (let b = 0; b < BARS; b++) {
+    let v = 0;
+    if (freqData) v = freqData[1 + Math.floor(Math.pow(b / BARS, 2) * top)] / 255;
+    smooth[b] = Math.max(v, smooth[b] * 0.88);
+    const bh = Math.max(2, smooth[b] * h * 0.92);
+    g2.fillStyle = 'rgba(255,90,54,' + (0.25 + smooth[b] * 0.75) + ')';
+    g2.fillRect(b * (bw + gap), h - bh, bw, bh);
+  }
+}
+
 function frame() {
   if (ctx) {
     const now = ctx.currentTime;
     while (queue.length && queue[0].time <= now) setPlayhead(queue.shift().step);
   }
+  drawScope();
   requestAnimationFrame(frame);
 }
 
+/* =====================================================================
+   BOOT
+===================================================================== */
 buildGrid();
 if (restore()) { syncUI(); repaintAll(); } else { loadPreset('Trap'); $('#preset').value = 'Trap'; }
+fit();
 frame();
 
 })();
